@@ -1,0 +1,43 @@
+FROM continuumio/miniconda3
+
+# Install system packages
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libnss3-tools \
+    libx11-xcb-dev \
+    libxss1 \
+    libxcomposite-dev \
+    libatk1.0-0 \
+    libgtk2.0-0 \
+    libxcomposite1 \
+    graphviz \
+    ffmpeg \
+    x11-xserver-utils
+
+RUN mkdir /app
+WORKDIR /app
+
+# Make RUN commands use `bash --login`:
+SHELL ["/bin/bash", "--login", "-c"]
+
+# Create the environment:
+COPY env-simba.yml .
+RUN conda env create -f env-simba.yml
+
+# Initialize conda in bash config fiiles:
+RUN conda init bash
+
+# Activate the environment, and make sure it's activated:
+RUN echo "conda activate simba" > ~/.bashrc
+RUN echo "Make sure conda python3.6 is installed:"
+
+# Make RUN commands use the new environment:
+SHELL ["conda", "run", "-n", "simba", "/bin/bash", "-c"]
+
+# Upgrade pip
+RUN pip install --upgrade pip
+
+RUN conda install -c anaconda wxpython
+RUN conda install tensorflow
+RUN pip install simba-uw-tf
+RUN conda install -c conda-forge shapely

@@ -1,0 +1,28 @@
+# docker-compose version
+version: '3.3'
+
+# computes
+services:
+  simba:
+    build:
+      context: .
+      dockerfile: ./Dockerfile-conda
+    image: simba-python36
+    environment:
+      # only works for Linux
+      DISPLAY: unix:0
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix #Static - needed to display atom on your host
+      - ./videos:/app/videos
+      - ./output:/app/output
+
+    command: bash -c "conda init bash && source ~/.bashrc && conda activate simba && /opt/conda/envs/simba/bin/simba"
+
+  deep:
+    build:
+      context: .
+      dockerfile: ./Dockerfile-deep
+    image: deeplabcut-python37
+    volumes:
+      - ./videos:/app/videos
+      - ./output:/app/output
