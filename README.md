@@ -21,6 +21,9 @@ the code w/ a goal to bypass all the manual inputs and selections so
 to use script to run the entire process w/o human intervention once a
 config has been given.
 
+
+I will update steps here
+
 ## Load project config
 
 - RF N Estimators: 2000
