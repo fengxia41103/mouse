@@ -14,9 +14,90 @@ Two dockers will be created: Simba is based on a `miniconda` base image, and `de
 For consequetive runs, `docker-compose up -d simba` if you only want
 simba to run. For both deeplabcut & simba, `docker-compose up -d`.
 
+# Example output file structure
+
+Simba is heavily relying on the local file system as a transportation
+layer to pass data from one step/function to another. Below is an
+example of an output file structure and its files. In this example,
+
+- one classifier: `mating`
+- one source video: `tmp.mp4`
+
+
+```plain
+.
+├── models
+│   └── generated_models
+│       ├── mating_meta.csv
+│       ├── mating.sav
+│       └── model_evaluations
+│           ├── mating_classificationReport.png
+│           ├── matingfancy_decision_tree_example
+│           ├── matingfancy_decision_tree_example.svg
+│           ├── mating_precision_recall.csv
+│           ├── mating_tree.dot
+│           └── mating_tree.pdf
+└── project_folder
+    ├── configs
+    │   └── mating_meta_0.csv
+    ├── csv
+    │   ├── features_extracted
+    │   │   └── tmp.csv
+    │   ├── input_csv
+    │   │   ├── original_filename
+    │   │   └── tmp.csv
+    │   ├── machine_results
+    │   │   └── tmp.csv
+    │   ├── outlier_corrected_movement
+    │   │   └── tmp.csv
+    │   ├── outlier_corrected_movement_location
+    │   │   └── tmp.csv
+    │   ├── targets_inserted
+    │   │   └── tmp.csv
+    │   └── validation
+    │       └── tmp.csv
+    ├── frames
+    │   ├── input
+    │   │   └── tmp
+    │   └── output
+    │       ├── gantt_plots
+    │       ├── heatmap_behavior
+    │       ├── line_plot
+    │       ├── live_data_table
+    │       ├── merged
+    │       ├── path_plots
+    │       ├── sklearn_results
+    │       └── validation
+    ├── logs
+    │   ├── lastframe_log.ini
+    │   ├── measures
+    │   │   └── pose_configs
+    │   ├── Movement_log_20210402205555.csv
+    │   ├── Movement_log_20210404215129.csv
+    │   ├── Outliers_location_20210402023339.csv
+    │   ├── Outliers_location_20210402023709.csv
+    │   ├── Outliers_location_20210402024006.csv
+    │   ├── Outliers_movement_20210402023337.csv
+    │   ├── Outliers_movement_20210402023707.csv
+    │   ├── Outliers_movement_20210402024004.csv
+    │   ├── severity_20210402203952.csv
+    │   ├── sklearn_20210402205521.csv
+    │   ├── Time_bins_ML_results_20210402205616.csv
+    │   ├── Time_bins_movement_results_20210402205623.csv
+    │   └── video_info.csv
+    ├── project_config.ini
+    └── videos
+        └── tmp.mp4
+
+30 directories, 32 files
+```
+
+
 # GUI step to function mapping
 
-The goal is to map GUI steps to simba code so we could understand the scope of its workflow, and possibility to skip GUI by running a script directly to achieve the same workflow result.
+The goal is to map GUI steps to simba code so we could understand the
+scope of its workflow, and possibility to skip GUI by running a script
+directly to achieve the same workflow result.
 
 ## Create new project
 
