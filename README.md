@@ -548,11 +548,375 @@ target_name_2 = sth
 ```
 And this goes the same for the `model_path_` above also.
 
-### Generate / Save annotations
+The `MainInterface` is defined also in `labelling_agression.py`. It
+defines the GUI where user can label frame by frame of the applicable
+classifier, and navigate through these frames using arrows keys on the
+keyboard.
 
-TBD
+### Saven and advance to the next frame
 
-## Notes
+This is used to label  one frame. Button is defined as:
+
+```python
+save = Button(
+    self.window,
+    text="Save and advance to the next frame",
+    command=lambda: self.save_checkboxes(self.window),
+)
+```
+
+And the `self.save_checkboxes` is defined as:
+
+```python
+def save_checkboxes(self, master):
+    if self.rangeOn.get():
+        s = int(self.firstFrame.get())
+        e = int(self.lastFrame.get())
+        save_values(s, e)
+        if e < len(frames_in) - 1:
+            load_frame(e + 1, master, self.fbox)
+        else:
+            load_frame(e, master, self.fbox)
+    else:
+        s = current_frame_number
+        e = s
+        save_values(s, e)
+        load_frame(e + 1, master, self.fbox)
+```
+
+where `s` and `e` will be frame index number.
+
+The key in this is the `save_values()`. What it does is to set values in the `df` based on frame index, and checked behavior/classifier.
+
+
+```python
+# Saves the values of each behavior in the DataFrame and prints out the
+# updated data frame
+def save_values(start, end):
+    global columns
+    contprintLoop = True
+    print("\n")
+    if start == end:
+        for i in range(len(behaviors)):
+            df.at[current_frame_number, columns[i]] = int(behaviors[i])
+            if behaviors[i] != 0:
+                print(
+                    "Annotated behavior: " +
+                    columns[i] + ". Frame: " + str(start) + "."
+                )
+
+    if start != end:
+        for i in range(start, end + 1):
+            for b in range(len(behaviors)):
+                df.at[i, columns[b]] = int(behaviors[b])
+                if behaviors[b] != 0 and (contprintLoop == True):
+                    print(
+                        "Annotated behavior: "
+                        + columns[b]
+                        + ". Start frame: "
+                        + str(start)
+                        + ". End frame: "
+                        + str(end)
+                    )
+            contprintLoop = False
+
+```
+
+### Generate / Save csv
+
+This button is defined as:
+
+```python
+self.generate = Button(
+    self.window,
+    text="Generate / Save csv",
+    command=lambda: save_video(self.window),
+)
+```
+
+And the `save_video()` essentially takes the dataframe in memory and dump it to file system. The complexity of this action is caused by the `resume` capability of this labelling exercise, in which one user can label certain number of frames, save, then load and resume. Therefore, each time this button is clicked, a `/logs/lastframe_log.ini` is also created, in which the last saved frame index is remembered. The final result is then saved in `/csv/targets_inserted/<video name>.csv`.
+
+
+```python
+# Appends data to corresponding features_extracted csv and exports as new csv
+def save_video(master):
+    input_file = (
+        str(os.path.split(os.path.dirname(os.path.dirname(os.getcwd())))[-2])
+        + r"\csv\features_extracted\\"
+        + current_video
+        + ".csv"
+    )
+    output_file = (
+        str(os.path.split(os.path.dirname(os.path.dirname(os.getcwd())))[-2])
+        + r"\csv\targets_inserted\\"
+        + current_video
+        + ".csv"
+    )
+    data = pd.read_csv(input_file)
+    new_data = pd.concat([data, df], axis=1)
+    new_data = new_data.fillna(0)
+    new_data.rename(columns={"Unnamed: 0": "scorer"}, inplace=True)
+    try:
+        new_data.to_csv(output_file, index=FALSE)
+        print(output_file)
+        print('Annotation file for "' + str(current_video) + '"' + " created.")
+        # saved last frame number on
+        frameLog = os.path.join(
+            os.path.dirname(projectini), "logs", "lastframe_log.ini"
+        )
+        if not os.path.exists(frameLog):
+            f = open(frameLog, "w+")
+            f.write("[Last saved frames]\n")
+            f.close()
+
+        config = ConfigParser()
+        config.read(frameLog)
+        config.set("Last saved frames", str(current_video), str(current_frame_number))
+        # write
+        with open(frameLog, "w") as configfile:
+            config.write(configfile)
+
+    except PermissionError:
+        print(
+            "You don not have permission to save the annotation file - check that the file is not open in a different application. If you are working of a server make sure the file is not open on a different computer."
+        )
+```
+
+And an example of the `lastframe_log.ini`:
+
+```ini
+[Last saved frames]
+tmp = 51
+```
+
+## Train Machine Models
+
+
+## Load Metadata
+
+### Load (meta CSV)
+
+The `Load` button is defined as:
+
+```python
+load_data = Button(
+    load_data_frame, text="Load", command=self.load_RFvalues, fg="blue"
+)
+```
+
+And the `load_RFvalues` is defined as:
+
+```python
+def load_RFvalues(self):
+
+    metadata = pd.read_csv(str(self.load_choosedata.file_path), index_col=False)
+    # metadata = metadata.drop(['Feature_list'], axis=1)
+    for m in metadata.columns:
+        self.meta_dict[m] = metadata[m][0]
+    print("Meta data file loaded")
+
+    for key in self.meta_dict:
+        cur_list = key.lower().split(sep="_")
+        # print(cur_list)
+        for i in self.settings:
+            string = i.lblName.cget("text").lower()
+            if all(map(lambda w: w in string, cur_list)):
+                i.entry_set(self.meta_dict[key])
+        for k in self.check_settings:
+            string = k.cget("text").lower()
+            if all(map(lambda w: w in string, cur_list)):
+                if self.meta_dict[key] == "yes":
+                    k.select()
+                elif self.meta_dict[key] == "no":
+                    k.deselect()
+
+```
+
+What this does is to load `/models/generated_models/<classifier>_meta.csv` and populate the form. An example of this csv is shown below, and together showing the UI form corresponding to this CSV:
+
+![load metadata form](/doc/images/load%20metadata.png)
+
+```csv
+Classifier_name,RF_criterion,RF_max_features,RF_min_sample_leaf,RF_n_estimators,compute_feature_permutation_importance,generate_classification_report,generate_example_decision_tree,generate_features_importance_bar_graph,generate_features_importance_log,generate_precision_recall_curves,generate_rf_model_meta_data_file,generate_sklearn_learning_curves,learning_curve_data_splits,learning_curve_k_splits,n_feature_importance_bars,over_sample_ratio,over_sample_setting,train_test_size,under_sample_ratio,under_sample_setting
+mating,gini,sqrt,1,2000,no,yes,yes,no,no,yes,yes,no,NaN,NaN,NaN,NaN,None,0.2,NaN,NaN
+```
+
+This leads to the next section, `Save settings into global environment`.
+
+### Save settings into global environment
+
+The button is defined as:
+
+```python
+button_settings_to_ini = Button(
+    trainmms,
+    text="Save settings into global environment",
+    font=("Helvetica", 18, "bold"),
+    fg="blue",
+    command=self.set_values,
+)
+```
+
+And the `set_values()` is defined below. Pretty straightforward. It takes input form values and dump them into the `project_config.ini`.
+
+```python
+def set_values(self):
+    self.get_checkbox()
+    #### settings
+    model = self.var.get()
+    n_estimators = self.label_nestimators.entry_get
+    max_features = self.label_maxfeatures.entry_get
+    criterion = self.label_criterion.entry_get
+    test_size = self.label_testsize.entry_get
+    min_sample_leaf = self.label_minsampleleaf.entry_get
+    under_s_c_v = self.label_under_s_correctionvalue.entry_get
+    under_s_settings = self.label_under_s_settings.entry_get
+    over_s_ratio = self.label_over_s_ratio.entry_get
+    over_s_settings = self.label_over_s_settings.entry_get
+    classifier_settings = self.varmodel.get()
+
+    # export settings to config ini file
+    configini = self.configini
+    config = ConfigParser()
+    config.read(configini)
+
+    config.set("create ensemble settings", "model_to_run", str(model))
+    config.set("create ensemble settings", "RF_n_estimators", str(n_estimators))
+    config.set("create ensemble settings", "RF_max_features", str(max_features))
+    config.set("create ensemble settings", "RF_criterion", str(criterion))
+    config.set("create ensemble settings", "train_test_size", str(test_size))
+    config.set(
+        "create ensemble settings", "RF_min_sample_leaf", str(min_sample_leaf)
+    )
+    config.set("create ensemble settings", "under_sample_ratio", str(under_s_c_v))
+    config.set(
+        "create ensemble settings", "under_sample_setting", str(under_s_settings)
+    )
+    config.set("create ensemble settings", "over_sample_ratio", str(over_s_ratio))
+    config.set(
+        "create ensemble settings", "over_sample_setting", str(over_s_settings)
+    )
+    config.set("create ensemble settings", "classifier", str(classifier_settings))
+    config.set("create ensemble settings", "RF_meta_data", str(self.rfmetadata))
+    config.set(
+        "create ensemble settings",
+        "generate_example_decision_tree",
+        str(self.generate_example_d_tree),
+    )
+    config.set(
+        "create ensemble settings",
+        "generate_classification_report",
+        str(self.generate_classification_report),
+    )
+    config.set(
+        "create ensemble settings",
+        "generate_features_importance_log",
+        str(self.generate_features_imp_log),
+    )
+    config.set(
+        "create ensemble settings",
+        "generate_features_importance_bar_graph",
+        str(self.generate_features_bar_graph),
+    )
+    config.set(
+        "create ensemble settings",
+        "N_feature_importance_bars",
+        str(self.n_importance),
+    )
+    config.set(
+        "create ensemble settings",
+        "compute_permutation_importance",
+        str(self.compute_permutation_imp),
+    )
+    config.set(
+        "create ensemble settings",
+        "generate_learning_curve",
+        str(self.generate_learning_c),
+    )
+    config.set(
+        "create ensemble settings",
+        "generate_precision_recall_curve",
+        str(self.generate_precision_recall_c),
+    )
+    config.set(
+        "create ensemble settings",
+        "LearningCurve_shuffle_k_splits",
+        str(self.learningcurveksplit),
+    )
+    config.set(
+        "create ensemble settings",
+        "LearningCurve_shuffle_data_splits",
+        str(self.learningcurvedatasplit),
+    )
+    config.set(
+        "create ensemble settings",
+        "generate_example_decision_tree_fancy",
+        str(self.generate_example_decision_tree_fancy),
+    )
+    config.set(
+        "create ensemble settings", "generate_shap_scores", str(self.getshapscores)
+    )
+    config.set(
+        "create ensemble settings", "shap_target_present_no", str(self.shappresent)
+    )
+    config.set(
+        "create ensemble settings", "shap_target_absent_no", str(self.shapabsent)
+    )
+
+    with open(configini, "w") as configfile:
+        config.write(configfile)
+
+    print("Settings exported to project_config.ini")
+
+```
+
+And an example in the config `ini` (Note that the values below include
+more than what the meta is setting. They are shown here for
+completeness of this section of the ini.)
+
+```ini
+[create ensemble settings]
+pose_estimation_body_parts = 16
+pose_config_label_path = /app/output/feng/project_folder/logs/measures/pose_configs/bp_names/project_bp_names.csv
+model_to_run = RF
+load_model =
+data_folder = /app/output/feng/project_folder/csv/targets_inserted
+classifier = mating
+train_test_size = 0.2
+under_sample_setting = None
+under_sample_ratio =
+over_sample_setting = None
+over_sample_ratio =
+rf_n_estimators = 2000
+rf_min_sample_leaf = 1
+rf_max_features = sqrt
+rf_n_jobs = -1
+rf_criterion = gini
+rf_meta_data = yes
+generate_example_decision_tree = yes
+generate_example_decision_tree_fancy = yes
+generate_features_importance_log = no
+generate_features_importance_bar_graph = no
+compute_permutation_importance = no
+generate_learning_curve = no
+generate_precision_recall_curve = yes
+n_feature_importance_bars =
+gbc_n_estimators =
+gbc_max_features =
+gbc_max_depth =
+gbc_learning_rate =
+gbc_min_sample_split =
+xgb_n_estimators =
+xgb_max_depth =
+xgb_learning_rate =
+meta_files_folder = /app/output/feng/project_folder/configs
+learningcurve_shuffle_k_splits =
+learningcurve_shuffle_data_splits =
+generate_classification_report = yes
+generate_shap_scores = no
+shap_target_present_no =
+shap_target_absent_no =
+```
 
 - RF N Estimators: 2000
 - RF Max features: sqrt
@@ -568,12 +932,568 @@ TBD
 
 Then, click "train single model form global environ".
 
-### Validate model on Single video
+### Save settings for specific model
 
-- select feature file: select `/csv/features.../tmp.csv`
-- select model: `/feng/models/generate_models/mating.csv`
+Similar to saving settings to global env. This is just a way dump the same information but to a different meta file, one per classifier in the `/configs/<classifier>_meta_<index>.csv`.
 
-Click `run model`
+The index is simply incremented every time you save based on the
+existing `meta` number found in the `/configs`. For example, if the folder already has `_meta_2.csv`, the new setting will then be saved to `_meta_3.csv`, and so on.
+
+The purpose of this capability is to allow user have multiple copies
+of forms, each having some different combination and values. Later on,
+one could load one particular form without having to go through the
+setup again, whereas the copy in the global env is only one of many.
+
+The button is defined as:
+
+```python
+button_save_meta = Button(
+    trainmms,
+    text="Save settings for specific model",
+    font=("Helvetica", 18, "bold"),
+    fg="green",
+    command=self.save_new,
+)
+```
+
+And the `save_new()` is defined as:
+
+```python
+def save_new(self):
+    self.get_checkbox()
+    meta_number = 0
+    for f in os.listdir(os.path.join(os.path.dirname(self.configini), "configs")):
+        if f.__contains__("_meta") and f.__contains__(str(self.varmodel.get())):
+            meta_number += 1
+
+    # for s in self.settings:
+    #     meta_df[s.lblName.cget('text')] = [s.entry_get]
+    new_meta_dict = {
+        "RF_n_estimators": self.label_nestimators.entry_get,
+        "RF_max_features": self.label_maxfeatures.entry_get,
+        "RF_criterion": self.label_criterion.entry_get,
+        "train_test_size": self.label_testsize.entry_get,
+        "RF_min_sample_leaf": self.label_minsampleleaf.entry_get,
+        "under_sample_ratio": self.label_under_s_correctionvalue.entry_get,
+        "under_sample_setting": self.label_under_s_settings.entry_get,
+        "over_sample_ratio": self.label_over_s_ratio.entry_get,
+        "over_sample_setting": self.label_over_s_settings.entry_get,
+        "generate_rf_model_meta_data_file": self.rfmetadata,
+        "generate_example_decision_tree": self.generate_example_d_tree,
+        "generate_classification_report": self.generate_classification_report,
+        "generate_features_importance_log": self.generate_features_imp_log,
+        "generate_features_importance_bar_graph": self.generate_features_bar_graph,
+        "n_feature_importance_bars": self.n_importance,
+        "compute_feature_permutation_importance": self.compute_permutation_imp,
+        "generate_sklearn_learning_curves": self.generate_learning_c,
+        "generate_precision_recall_curves": self.generate_precision_recall_c,
+        "learning_curve_k_splits": self.learningcurveksplit,
+        "learning_curve_data_splits": self.learningcurvedatasplit,
+        "generate_shap_scores": self.getshapscores,
+        "shap_target_present_no": self.shappresent,
+        "shap_target_absetn_no": self.shapabsent,
+    }
+    meta_df = pd.DataFrame(new_meta_dict, index=[0])
+    meta_df.insert(0, "Classifier_name", str(self.varmodel.get()))
+
+    if currentPlatform == "Windows":
+        output_path = (
+            os.path.dirname(self.configini)
+            + "\\configs\\"
+            + str(self.varmodel.get())
+            + "_meta_"
+            + str(meta_number)
+            + ".csv"
+        )
+
+    if currentPlatform == "Linux":
+        output_path = (
+            os.path.dirname(self.configini)
+            + "/configs/"
+            + str(self.varmodel.get())
+            + "_meta_"
+            + str(meta_number)
+            + ".csv"
+        )
+
+    print(os.path.basename(str(output_path)), "saved")
+
+    meta_df.to_csv(output_path, index=FALSE)
+
+```
+
+### Clear cache
+
+This is simply to remove previously generated meta CSV files from `/configs`.
+
+```python
+def clearcache(self):
+    configs_dir = os.path.join(os.path.dirname(self.configini), "configs")
+    filelist = [f for f in os.listdir(configs_dir) if f.endswith(".csv")]
+    for f in filelist:
+        os.remove(os.path.join(configs_dir, f))
+        print(f, "deleted")
+```
+
+This, however, also illustrates the current design that it uses the
+file system and its predefined file structure to hold values, thus
+behaving like a cache. In our attempt, however, we are to abolish this
+method and use DB as backend for data persistence.
+
+### Train single model from global environment
+
+The button is defined as:
+
+```python
+button_trainmachinemodel = Button(
+    label_trainmachinemodel,
+    text="Train single model from global environment",
+    fg="blue",
+    command=lambda: threading.Thread(
+        target=trainmodel2(self.projectconfigini)
+    ).start(),
+)
+```
+
+Thus this kicks off a thread calling `trainmodel2()` for the job.  The
+only input is the global config file.
+
+### Train multiple model
+
+If you recall that we could save multiple sets of meta settings, this is easily perceivable &mdash; it enumerates th e meta configs, and apply them to the data.
+
+The button is defined as:
+
+```python
+button_train_multimodel = Button(
+    label_trainmachinemodel,
+    text="Train multiple models, one for each saved settings",
+    fg="green",
+    command=lambda: threading.Thread(target=self.trainmultimodel).start(),
+)
+
+```
+
+## Validate model on Single video
+
+- select feature file: select `/csv/features_extracted/<video name>.csv`
+- select model: `/models/generate_models/<classfier>.csv`
+
+### Run Model
+
+The button is defined as:
+
+```python
+button_runvalidmodel = Button(
+    label_model_validation,
+    text="Run Model",
+    command=lambda: validate_model_one_vid_1stStep(
+        self.projectconfigini, self.csvfile.file_path, self.modelfile.file_path
+    ),
+)
+```
+
+And the function is defined in `runmodel_1st.py` as:
+
+```python
+def validate_model_one_vid_1stStep(inifile,csvfile,savfile):
+    configFile = str(inifile)
+    config = ConfigParser()
+    config.read(configFile)
+    sample_feature_file = str(csvfile)
+    sample_feature_file_Name = os.path.basename(sample_feature_file)
+    sample_feature_file_Name = sample_feature_file_Name.split('.', 1)[0]
+    classifier_path = savfile
+    classifier_name = os.path.basename(classifier_path).replace('.sav','')
+    inputFile = pd.read_csv(sample_feature_file)
+    inputFile = inputFile.loc[:, ~inputFile.columns.str.contains('^Unnamed')]
+    outputDf = inputFile
+    inputFileOrganised = drop_bp_cords(inputFile, inifile)
+    print(inputFileOrganised)
+    print('Running model...')
+    clf = pickle.load(open(classifier_path, 'rb'))
+    ProbabilityColName = 'Probability_' + classifier_name
+    predictions = clf.predict_proba(inputFileOrganised)
+    outputDf[ProbabilityColName] = predictions[:, 1]
+
+    # CREATE LIST OF GAPS BASED ON SHORTEST BOUT
+
+    vidInfPath = config.get('General settings', 'project_path')
+    vidInfPath = os.path.join(vidInfPath, 'logs', 'video_info.csv')
+    vidinfDf = pd.read_csv(vidInfPath)
+    fps = vidinfDf.loc[vidinfDf['Video'] == str(sample_feature_file_Name.replace('.csv', ''))]
+    try:
+        fps = int(fps['fps'])
+    except TypeError:
+        print('Error: make sure all the videos that are going to be analyzed are represented in the project_folder/logs/video_info.csv file')
+
+
+    outFname = sample_feature_file_Name + '.csv'
+    csv_dir_out_validation = config.get('General settings', 'csv_path')
+    csv_dir_out_validation = os.path.join(csv_dir_out_validation,'validation')
+    if not os.path.exists(csv_dir_out_validation):
+        os.makedirs(csv_dir_out_validation)
+    outFname = os.path.join(csv_dir_out_validation, outFname)
+    outputDf.to_csv(outFname)
+    print('Predictions generated.')
+
+```
+### Generate plot
+
+This will display a line plot show frame vs. <classifier> probability. It constructs the UI so that user can double click the line plot and the video window will jump to the particular frame, thus allowing operator to view the probability value and frame side-by-side.
+
+The button is defined as:
+
+```python
+button_generateplot = Button(
+    label_model_validation, text="Generate plot", command=self.updateThreshold
+)
+```
+
+And the `updateThreshold()` is defined as:
+
+```python
+def updateThreshold(self):
+    updateThreshold_graph(
+        self.projectconfigini, self.csvfile.file_path, self.modelfile.file_path
+    )
+```
+
+And the `updateThreshold_graph()` is defined in `prob_graph.py`. I'm
+omitting the details of this function as much of it is to construct
+the graph window and the video frame window, and how they are
+responding to user clicks.
+
+### Validate
+
+The button is defined as:
+
+```python
+button_validate_model = Button(
+    label_model_validation, text="Validate", command=self.validatemodelsinglevid
+)
+```
+
+The `validatemodelsinglevid()` is defined below, nothing but a thin wrapper to the `validate_model_on_vid()`. Note that the two input values, `dis_threshold` and `min_behaviorbout` are required.
+
+```python
+def validatemodelsinglevid(self):
+    validate_model_one_vid(
+        self.projectconfigini,
+        self.csvfile.file_path,
+        self.modelfile.file_path,
+        self.dis_threshold.entry_get,
+        self.min_behaviorbout.entry_get,
+        self.ganttvar.get(),
+    )
+```
+
+`validate_model_one_vid()` is defined in `validate_model_on_single_video.py`. Results will be saved in `/frames/output/validation/`.
+
+
+### Mode Settings
+
+#### Model Settings
+
+Model settings brings up a new GUI in which each classifier can be set a `(threshold, minimum bout)` value pairs.
+
+The `Set model(s)` button is defined as:
+
+```python
+button_set = Button(
+    runmms,
+    text="Set model(s)",
+    command=lambda: self.set_modelpath_to_ini(inifile),
+    font=("Helvetica", 18, "bold"),
+    fg="red",
+)
+```
+
+The `set_modelpath_to_ini()` is defined as:
+
+```python
+def set_modelpath_to_ini(self, inifile):
+    config = ConfigParser()
+    configini = str(inifile)
+    config.read(configini)
+
+    for i in range(len(self.targetname)):
+        config.set(
+            "SML settings",
+            "model_path_" + (str(i + 1)),
+            str(self.row2[i].file_path),
+        )
+        config.set(
+            "threshold_settings",
+            "threshold_" + (str(i + 1)),
+            str(self.row3[i].get()),
+        )
+        config.set(
+            "Minimum_bout_lengths",
+            "min_bout_" + (str(i + 1)),
+            str(self.row4[i].get()),
+        )
+
+    with open(configini, "w") as configfile:
+        config.write(configfile)
+
+    print("Model paths saved in project_config.ini")
+
+```
+
+And example of the ini settings are:
+
+```ini
+[SML settings]
+model_dir = /app/output/feng/models
+model_path_1 = /app/output/feng/models/generated_models/mating.sav
+no_targets = 1
+target_name_1 = mating
+
+[threshold_settings]
+threshold_1 = 0.105
+
+[Minimum_bout_lengths]
+min_bout_1 = 20
+```
+
+Essentially, for each classifier, a model setting includes three things:
+
+1. `model_path_<classifier index>`
+2. `threshold_<classifier index>`
+3. `min_bout_<classifier index>`
+
+### Run RF Model
+
+The button is defined as:
+
+```python
+button_runmachinemodel = Button(
+    label_runmachinemodel,
+    text="Run RF Model",
+    command=lambda: threading.Thread(target=self.runrfmodel).start(),
+)
+```
+
+So this is another thread and the main body is the `runrfmodel()`, which is nothing but a thin wrapper:
+
+```python
+def runrfmodel(self):
+    rfmodel(self.projectconfigini)
+```
+
+The `rfmodel()` is defined in `run_RF_model.py`. Results are written in `/csv/machine_results/`.
+
+### Apply Kleinburg Smoother
+
+Button is defined as:
+
+```python
+run_kleinberg_button = Button(
+    kleintoplvl,
+    text="Apply Kleinberg Smoother",
+    command=lambda: self.runkleinberg(targetlist, varlist),
+)
+```
+
+And the `self.runkleinberg()` is defined as:
+
+```python
+def runkleinberg(self, targetlist, varlist):
+    classifier_list = []
+    for i in range(len(varlist)):
+        if varlist[i].get() == 1:
+            classifier_list.append(targetlist[i])
+
+    print(classifier_list, "selected")
+    run_kleinberg(
+        self.projectconfigini,
+        classifier_list,
+        self.k_sigma.entry_get,
+        self.k_gamma.entry_get,
+        self.k_hierarchy.entry_get,
+    )
+```
+
+However, though the import indicates that `from
+simba.Kleinberg_burst_analysis import run_kleinberg`, I have failed to
+identify the `Kleinberg_burst_analysis` module in the source
+code. Thus this could either be a bug or a 3rd party installation.
+
+### Analyze machine predictions
+
+Skipping the popup GUI asking user to select a list of checkboxes. The actual action button `Analyze` is defined as:
+
+```python
+button1 = Button(
+    dlmlabel,
+    text="Analyze",
+    command=lambda: self.findDatalogList(titlebox, var),
+)
+```
+
+And the `findDatalogList()` is defined as:
+
+```python
+def findDatalogList(self, titleBox, Var):
+    finallist = []
+    for index, i in enumerate(Var):
+        if i.get() == 0:
+            finallist.append(titleBox[index])
+
+    # run analyze
+    analyze_process_data_log(self.projectconfigini, finallist)
+```
+
+Func `analyze_process_data_log()` is defined in `process_data_log.py`. This is where the calculation for `bout events` takes place, which later produce the overlay info:
+
+1. total events duration (s)
+2. mean bout duration (s)
+3. median bout duration (s)
+4. first occurance (s)
+5. mean interval (s)
+6. median interval (s)
+
+### Analyze distance/velocity
+
+Action button `Run` on this UI (rendered by `roi_settings()`) is
+defined as:
+
+```python
+runButton = Button(
+    self.secondMenu,
+    text=text,
+    command=lambda: self.run_analyze_roi(
+        noofanimal.get(), animalVarList, appendornot
+    ),
+)
+```
+
+And the `run_analyze_roi()` is defined as:
+
+```python
+def run_analyze_roi(self, noofanimal, animalVarList, appendornot):
+    print(animalVarList)
+    configini = self.projectconfigini
+    config = ConfigParser()
+    config.read(configini)
+
+    if appendornot == "processmovement":
+        config.set("process movements", "no_of_animals", str(noofanimal))
+        for animal in range(noofanimal):
+            animalBp = str(animalVarList[animal].get())
+            config.set(
+                "process movements", "animal_" + str(animal + 1) + "_bp", animalBp
+            )
+        with open(configini, "w") as configfile:
+            config.write(configfile)
+
+    elif appendornot == "locationheatmap":
+        animalBp = str(self.animalbody1var.get())
+        config.set("Heatmap location", "body_part", animalBp)
+        config.set("Heatmap location", "Palette", str(self.pal_var.get()))
+        config.set(
+            "Heatmap location", "Scale_max_seconds", str(self.scalemaxsec.entry_get)
+        )
+        config.set(
+            "Heatmap location", "bin_size_pixels", str(self.binsizepixels.entry_get)
+        )
+        with open(configini, "w") as configfile:
+            config.write(configfile)
+
+    else:
+        config.set("ROI settings", "no_of_animals", str(noofanimal))
+        for animal in range(noofanimal):
+            currStr = "animal_" + str(animal + 1) + "_bp"
+            config.set("ROI settings", currStr, str(animalVarList[animal].get()))
+            with open(configini, "w") as configfile:
+                config.write(configfile)
+
+    if appendornot == "append":
+        ROItoFeatures(configini)
+    elif appendornot == "not append":
+        config.set(
+            "ROI settings",
+            "probability_threshold",
+            str(self.p_threshold_a.entry_get),
+        )
+        roiAnalysis(configini, "outlier_corrected_movement_location")
+    elif appendornot == "processmovement":
+        ROI_process_movement(configini)
+    elif appendornot == "locationheatmap":
+        plotHeatMapLocation(
+            configini,
+            animalBp,
+            int(self.binsizepixels.entry_get),
+            str(self.scalemaxsec.entry_get),
+            self.pal_var.get(),
+            self.lastimgvar.get(),
+        )
+    elif appendornot == "direction":
+        print("ROI settings saved.")
+    else:
+        roiAnalysis(configini, "features_extracted")
+```
+
+It's messy, isn't it!? Results are saved in `/logs`.
+
+
+### Time bins: Machine predictions
+
+The action button is defined as:
+
+```python
+tb_button = Button(
+    tb_labelframe,
+    text="Run",
+    command=lambda: time_bins_classifier(
+        self.projectconfigini, int(tb_entry.entry_get)
+    ),
+)
+```
+
+And `time_bins_classifier()` is defined in `timBins_classifier.py`. Results are written in `/logs/Time_bins_ML_results_<now in %Y%m%d%H%M%S>.csv`.
+
+### Time bins: Distance/Velocity
+
+Similar to the "time bins: machine prediction" above, button is defined as:
+
+```python
+tb_button = Button(
+    tb_labelframe,
+    text="Run",
+    command=lambda: time_bins_movement(
+        self.projectconfigini, int(tb_entry.entry_get)
+    ),
+)
+
+```
+
+The `time_bins_movement(0` is defined in `timeBins_movement.py`. Results are written in `/logs/Time_bins_movement_results_<time stamp>.csv`.
+
+### Analyze target severity
+
+Button is defined as:
+
+```python
+button_process_severity = Button(
+    label_severity, text="Analyze target severity", command=self.analyzseverity
+)
+```
+
+And the `self.analyzeseverity()` is a thin wrapper:
+
+```python
+def analyzseverity(self):
+    analyze_process_severity(
+        self.projectconfigini,
+        self.severityscale.entry_get,
+        self.severityTarget.getChoices(),
+    )
+```
+
+Func `analyze_process_severity()` is defined in `process_severity.py`. Results are written in `/logs/severity_<now time stamp>.csv`.
+
 
 [1]: https://github.com/sgoldenlab/simba/blob/master/docs/tutorial.md
 [2]: https://github.com/sgoldenlab/simba/blob/master/docs/labelling_aggression_tutorial.md
