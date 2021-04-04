@@ -22,6 +22,7 @@ example of an output file structure and its files. In this example,
 
 - one classifier: `mating`
 - one source video: `tmp.mp4`
+- in the video: two mice, labeled as `animal_1` and `animal_2`.
 
 
 ```plain
@@ -92,6 +93,183 @@ example of an output file structure and its files. In this example,
 30 directories, 32 files
 ```
 
+# Global config
+
+Settings driving the Simba computations are mostly saved in a global `/project_folder/project_config.ini` file. Its values can be categorized into three types:
+
+1. Paths: These are tightly correlated to the file structure shown in
+   the previous section. They are mostly represented as a `file
+   selection` widget, whereas its value is saved in this file. These
+   path values are used throughout code so function can acquire file
+   as its data input. In essence, Simba is using file system as a data
+   transportation layer, which makes tracking the data flow difficult.
+
+   Because of this design choice, nearly all folder paths are
+   pre-determined. Path for a particular filename will vary, for
+   example, `mating.csv` is linked to a classifier called
+   `mating`. However, its location, eg. `/generated_models/` is still
+   fixed.
+
+2. Computation settings: These values, eg. bin size, bout threshold,
+   are set by user for his/her use case. In most cases they don't have
+   a default value.
+
+3. Housekeeping: Values used by Simba for its own housekeeping only,
+   eg. project name.
+
+An example of the config is shown below. This example has been through most of the workflow steps, thus you seen most values are filled out. Upon a new project, you should expect most values are blank.
+
+- `/app/output/feng` is the root output folder designated to this run,
+  thus having no significant meaning in the interest of computation
+  except for its data inventory/grouping purpose.
+
+
+```ini
+[General settings]
+project_path = /app/output/feng/project_folder
+project_name = feng
+csv_path = /app/output/feng/project_folder/csv
+use_master_config = yes
+config_folder = /app/output/feng/project_folder/configs
+workflow_file_type = csv
+animal_no = 2
+os_system = Linux
+
+[SML settings]
+model_dir = /app/output/feng/models
+model_path_1 = /app/output/feng/models/generated_models/mating.sav
+no_targets = 1
+target_name_1 = mating
+
+[threshold_settings]
+threshold_1 = 0.105
+
+[Minimum_bout_lengths]
+min_bout_1 = 20
+
+[Frame settings]
+frames_dir_in = /app/output/feng/project_folder/frames/input
+frames_dir_out = /app/output/feng/project_folder/frames/output
+mm_per_pixel =
+distance_mm = 245
+
+[Line plot settings]
+bodyparts =
+
+[Path plot settings]
+deque_points = 1
+behaviour_points =
+plot_severity = no
+severity_brackets = 10
+file_format = .bmp
+no_animal_pathplot = 2
+animal_1_bp = Center_1
+animal_2_bp = Center_2
+severity_target = mating
+
+[Frame folder]
+frame_folder = /app/output/feng/project_folder/frames
+copy_frames = yes
+
+[Distance plot]
+poi_1 = Center_1
+poi_2 = Center_2
+
+[Heatmap settings]
+bin_size_pixels = 200
+scale_max_seconds = auto
+scale_increments_seconds =
+palette = gnuplot2
+target_behaviour =
+body_part = Center_1
+target = mating
+
+[Heatmap location]
+
+[ROI settings]
+animal_1_bp =
+animal_2_bp =
+directionality_data =
+visualize_feature_data =
+
+[process movements]
+animal_1_bp = Ear_left_1
+animal_2_bp = Ear_left_2
+no_of_animals = 2
+
+[Create movie settings]
+file_format =
+bitrate =
+
+[create ensemble settings]
+pose_estimation_body_parts = 16
+pose_config_label_path = /app/output/feng/project_folder/logs/measures/pose_configs/bp_names/project_bp_names.csv
+model_to_run = RF
+load_model =
+data_folder = /app/output/feng/project_folder/csv/targets_inserted
+classifier = mating
+train_test_size = 0.2
+under_sample_setting = None
+under_sample_ratio = NaN
+over_sample_setting = None
+over_sample_ratio = NaN
+rf_n_estimators = 2000
+rf_min_sample_leaf = 1
+rf_max_features = sqrt
+rf_n_jobs = -1
+rf_criterion = gini
+rf_meta_data = yes
+generate_example_decision_tree = yes
+generate_example_decision_tree_fancy = yes
+generate_features_importance_log = no
+generate_features_importance_bar_graph = no
+compute_permutation_importance = no
+generate_learning_curve = no
+generate_precision_recall_curve = yes
+n_feature_importance_bars = NaN
+gbc_n_estimators =
+gbc_max_features =
+gbc_max_depth =
+gbc_learning_rate =
+gbc_min_sample_split =
+xgb_n_estimators =
+xgb_max_depth =
+xgb_learning_rate =
+meta_files_folder = /app/output/feng/project_folder/configs
+learningcurve_shuffle_k_splits = NaN
+learningcurve_shuffle_data_splits = NaN
+generate_classification_report = yes
+generate_shap_scores = no
+shap_target_present_no =
+shap_target_absent_no =
+
+[validation/run model]
+generate_validation_video =
+sample_feature_file =
+save_individual_frames =
+classifier_path =
+classifier_name =
+frames_dir_out_validation =
+save_frames =
+save_gantt =
+discrimination_threshold =
+
+[Multi animal IDs]
+id_list =
+
+[Outlier settings]
+movement_criterion = 0.7
+location_criterion = 1.5
+movement_bodypart1_animal_1 = Ear_left_1
+movement_bodypart2_animal_1 = Ear_right_1
+location_bodypart1_animal_1 = Ear_left_1
+location_bodypart2_animal_1 = Ear_right_1
+movement_bodypart1_animal_2 = Ear_left_2
+movement_bodypart2_animal_2 = Ear_right_2
+location_bodypart1_animal_2 = Ear_left_2
+location_bodypart2_animal_2 = Ear_right_2
+mean_or_median = mean
+```
 
 # GUI step to function mapping
 
