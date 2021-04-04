@@ -1016,7 +1016,6 @@ percentile, and so on, thus appears to be the heavy lifting utility.
 
 ## Label Behavior
 
-![label behavior](https://github.com/sgoldenlab/simba/raw/master/images/label_behaviornew.PNG)
 
 This is a manual process where operator is expected to identify
 patterns s/he is looking for frame by frame, thus allowing AI to use
@@ -1028,7 +1027,10 @@ Check details of the [behavioral annotator GUI][2].
 
 ![labeling behavior GUI](https://github.com/sgoldenlab/simba/raw/master/images/labelling_mainscreen.PNG)
 
+
 ### select folder w/ frames
+
+![label behavior](https://github.com/sgoldenlab/simba/raw/master/images/label_behaviornew.PNG)
 
 This is to set the path to video frames. Frames would have been
 generated from video earlier, thus expecting to see a list of `.png`
@@ -1129,6 +1131,8 @@ classifier, and navigate through these frames using arrows keys on the
 keyboard.
 
 ### Saven and advance to the next frame
+
+![label frame](https://github.com/sgoldenlab/tkinter_test/raw/master/images/openingvideo.gif)
 
 This is used to label  one frame. Button is defined as:
 
@@ -1266,6 +1270,7 @@ tmp = 51
 
 ## Train Machine Models
 
+![train machine models](https://github.com/sgoldenlab/simba/raw/master/images/machinemodelsettings.PNG)
 
 ## Load Metadata
 
@@ -1768,7 +1773,11 @@ def validatemodelsinglevid(self):
 
 ### Mode Settings
 
+![model settings](https://github.com/sgoldenlab/simba/raw/master/images/runrfmodel.PNG)
+
 #### Model Settings
+
+![model settings](https://github.com/sgoldenlab/simba/raw/master/images/rfmodelsettings.PNG)
 
 Model settings brings up a new GUI in which each classifier can be set a `(threshold, minimum bout)` value pairs.
 
