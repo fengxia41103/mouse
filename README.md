@@ -411,10 +411,12 @@ example of an output file structure and its files. In this example,
 
 # Global config
 
-Settings driving the Simba computations are mostly saved in a global `/project_folder/project_config.ini` file. Its values can be categorized into three types:
+Settings driving the Simba computations are mostly saved in a global
+`/project_folder/project_config.ini` file. Its values can be
+categorized into three types:
 
-1. Paths: These are tightly correlated to the file structure shown in
-   the previous section. They are mostly represented as a `file
+1. **Paths**: These are tightly correlated to the file structure shown
+   in the previous section. They are mostly represented as a `file
    selection` widget, whereas its value is saved in this file. These
    path values are used throughout code so function can acquire file
    as its data input. In essence, Simba is using file system as a data
@@ -426,14 +428,16 @@ Settings driving the Simba computations are mostly saved in a global `/project_f
    `mating`. However, its location, eg. `/generated_models/` is still
    fixed.
 
-2. Computation settings: These values, eg. bin size, bout threshold,
-   are set by user for his/her use case. In most cases they don't have
-   a default value.
+2. **Computation settings**: These values, eg. bin size, bout
+   threshold, are set by user for his/her use case. In most cases they
+   don't have a default value.
 
-3. Housekeeping: Values used by Simba for its own housekeeping only,
-   eg. project name.
+3. **Housekeeping**: Values used by Simba for its own housekeeping
+   only, eg. project name.
 
-An example of the config is shown below. This example has been through most of the workflow steps, thus you seen most values are filled out. Upon a new project, you should expect most values are blank.
+An example of the config is shown below. This example has been through
+most of the workflow steps, thus you seen most values are filled
+out. Upon a new project, you should expect most values are blank.
 
 - `/app/output/feng` is the root output folder designated to this run,
   thus having no significant meaning in the interest of computation
