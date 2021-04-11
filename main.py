@@ -34,6 +34,7 @@ from simba.validate_model_on_single_video import validate_model_one_vid
 
 
 class MyConfig:
+
     def __init__(self, path_to_ini):
         self.path_to_ini = path_to_ini
         self.config = ConfigParser()
@@ -53,18 +54,22 @@ class MyConfig:
         self.config.set("Frame settings", "mm_per_pixel", str(ppm))
 
     def set_outlier_movement_criterion(self, criterion):
-        self.config.set("Outlier settings", "movement_criterion", str(criterion))
+        self.config.set("Outlier settings",
+                        "movement_criterion", str(criterion))
 
     def set_outlier_location_criterion(self, criterion):
-        self.config.set("Outlier settings", "location_criterion", str(criterion))
+        self.config.set("Outlier settings",
+                        "location_criterion", str(criterion))
 
     def set_outlier_mean_or_median(self, what="mean"):
         self.config.set("Outlier settings", "mean_or_median", str(what))
 
     def set_process_movements(self, body_parts):
         for index, bp in enumerate(body_parts):
-            self.config.set("process movements", "animal_" + str(index + 1) + "_bp", bp)
-        self.config.set("process movements", "no_of_animals", str(len(body_parts)))
+            self.config.set("process movements", "animal_" +
+                            str(index + 1) + "_bp", bp)
+        self.config.set("process movements", "no_of_animals",
+                        str(len(body_parts)))
 
     def set_roi_settings_no_of_animals(self, no):
         self.config.set("ROI settings", "no_of_animals", str(no))
@@ -194,8 +199,13 @@ cli.add_command(create)
 
 @click.command()
 @click.option("--classifier", required=True, help="Classifier you want to compute w/.")
+@click.option("--skip-plots", default=1, help="True to skip visualizations.")
+@click.option("--skip-labelling", default=1, help="True to skip agression labelling.")
+@click.option(
+    "--skip-video-validation", default=1, help="True to skip video validation."
+)
 @click.argument("path-to-ini", nargs=1)
-def analyze(path_to_ini, classifier):
+def analyze(path_to_ini, classifier, skip_plots, skip_labelling, skip_video_validation):
     current_video = "tmp"
 
     config = MyConfig(path_to_ini)
@@ -231,49 +241,39 @@ def analyze(path_to_ini, classifier):
     l.extractfeatures()
 
     # label behavior
-    # TBD, manual only so far.
+    if not skip_labelling:
+        frame_path = os.path.join(config.get_frame_input_path(), current_video)
+        la.frames_in = [x for x in os.listdir(frame_path) if ".png" in x]
+        la.reset()
+        la.frames_in = sorted(la.frames_in, key=lambda x: int(x.split(".")[0]))
 
-    frame_path = os.path.join(config.get_frame_input_path(), current_video)
-    la.frames_in = [x for x in os.listdir(frame_path) if ".png" in x]
-    la.reset()
-    la.frames_in = sorted(la.frames_in, key=lambda x: int(x.split(".")[0]))
+        la.current_video = current_video
+        la.configure(path_to_ini)
 
-    la.current_video = current_video
-    la.configure(path_to_ini)
+        # la.choose_folder(path_to_ini)
+        la.curent_frame_number = 0
+        la.behaviors[0] = 1
+        la.save_values(0, 50)
+        la.behaviors[0] = 0
+        la.save_values(51, len(la.frames_in))
 
-    # la.choose_folder(path_to_ini)
-    la.curent_frame_number = 0
-    la.behaviors[0] = 1
-    la.save_values(0, 50)
-    la.behaviors[0] = 0
-    la.save_values(51, len(la.frames_in))
+        input_file = os.path.join(
+            config.config.get("General settings", "csv_path"),
+            "features_extracted",
+            "{}.csv".format(current_video),
+        )
+        output_file = os.path.join(
+            config.config.get("create ensemble settings", "data_folder"),
+            "{}.csv".format(current_video),
+        )
+        data = pd.read_csv(input_file)
+        new_data = pd.concat([data, la.df], axis=1)
+        new_data = new_data.fillna(0)
+        new_data.rename(columns={"Unnamed: 0": "scorer"}, inplace=True)
 
-
-    input_file = os.path.join(
-        config.config.get("General settings", "csv_path"),
-        "features_extracted",
-        "{}.csv".format(current_video),
-    )
-    output_file = os.path.join(
-        config.config.get("create ensemble settings", "data_folder"), "{}.csv".format(current_video)
-    )
-    data = pd.read_csv(input_file)
-    new_data = pd.concat([data, la.df], axis=1)
-    new_data = new_data.fillna(0)
-    new_data.rename(columns={"Unnamed: 0": "scorer"}, inplace=True)
-
-    new_data.to_csv(output_file, index=False)
-    print(output_file)
-    print("Annotation file for {} created.".format(current_video))
-
-
-    # load metadata
-    # t = trainmachinemodel_settings(path_to_ini)
-
-    # TODO: path to meta is hardcoded
-    # t.load_choosedata.filePath.set(
-    #    "/app/output/feng/models/generated_models/mating_meta.csv")
-    # t.load_RFvalues()
+        new_data.to_csv(output_file, index=False)
+        print(output_file)
+        print("Annotation file for {} created.".format(current_video))
 
     # train single model
     trainmodel2(path_to_ini)
@@ -288,9 +288,15 @@ def analyze(path_to_ini, classifier):
     discrimination_threshold = config.get_discrimination_threshold()
     min_bout_length = config.get_min_bout_length()
     generate_gannt = 0  # 1 to generate
-    validate_model_one_vid(
-        path_to_ini, csv, sav, discrimination_threshold, min_bout_length, generate_gannt
-    )
+    if not skip_video_validation:
+        validate_model_one_vid(
+            path_to_ini,
+            csv,
+            sav,
+            discrimination_threshold,
+            min_bout_length,
+            generate_gannt,
+        )
 
     # run RF model
     rfmodel(path_to_ini)
@@ -337,6 +343,9 @@ def analyze(path_to_ini, classifier):
     # analyze severity
     severity_scale = 5  # must > 1!
     analyze_process_severity(path_to_ini, severity_scale, classifier)
+
+    if skip_plots:
+        return
 
     # plot gannt
     ganntplot_config(path_to_ini)
