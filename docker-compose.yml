@@ -10,12 +10,21 @@ services:
     image: simba-python36
     environment:
       # only works for Linux
-      DISPLAY: unix:0
+      DISPLAY:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix #Static - needed to display atom on your host
-      - ../../3rd/simba/videos:/app/videos
-      - ../../3rd/simba//output:/app/output
-      - ../../3rd/simba/simba:/code/simba
-      - ./main.py:/code/main.py
+      - ./videos:/app/videos
+      - ./output:/app/output
+      #- ../../3rd/simba/simba:/code/simba
+      - ./main.py:/app/main.py
 
-    command: bash -c "conda init bash && source ~/.bashrc && conda activate simba && /opt/conda/envs/simba/bin/simba"
+    command: /opt/conda/envs/simba/bin/simba
+
+  deep:
+    build:
+      context: .
+      dockerfile: ./Dockerfile-deep
+    image: deeplabcut-python37
+    volumes:
+      - ./videos:/app/videos
+      - ./output:/app/output
