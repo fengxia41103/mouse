@@ -16,6 +16,7 @@ services:
       - ./videos:/app/videos
       - ./output:/app/output
       #- ../../3rd/simba/simba:/code/simba
+      - ./template-config.ini:/app/template-config.ini
       - ./main.py:/app/main.py
 
     command: /opt/conda/envs/simba/bin/simba

@@ -5,6 +5,7 @@ import click
 import pandas as pd
 
 import simba.labelling_aggression as la
+from loguru import logger
 from simba.create_project_ini import write_inifile
 from simba.data_plot import data_plot_config
 from simba.gantt import ganntplot_config
@@ -34,7 +35,6 @@ from simba.validate_model_on_single_video import validate_model_one_vid
 
 
 class MyConfig:
-
     def __init__(self, path_to_ini):
         self.path_to_ini = path_to_ini
         self.config = ConfigParser()
@@ -47,41 +47,51 @@ class MyConfig:
         with open(self.path_to_ini, "w") as f:
             self.config.write(f)
 
+    def merge_with_template(self, template):
+        if not os.path.exists(template):
+            logger.error("Template {} does not exist.".format(template))
+
+        # refresh myself before the merge
+        self.read_from_disk()
+
+        t = ConfigParser()
+        t.read(template)
+
+        # all sections should be imported
+        for s in t.sections():
+            if s not in self.config.sections():
+                self.config.add_section(s)
+
+        # enumerate template key-val and import values that are not
+        # found in me.
+        for s in t.sections():
+            for o in t.options(s):
+                val_in_template = t.get(s, o)
+                val_in_me = self.config.get(s, o, fallback=None)
+
+                # we import template value if I don't have one.
+                if not val_in_me:
+                    self.config.set(s, o, val_in_template)
+
+                # if mine is 0, use the template's
+                if val_in_me == "0":
+                    self.config.set(s, o, val_in_template)
+
+                # if mine is "no", use template's
+                if val_in_me == "no":
+                    self.config.set(s, o, val_in_template)
+
+        # write back to disk
+        self.write_to_disk()
+
     def set_distance_mm(self, distance):
         self.config.set("Frame settings", "distance_mm", str(distance))
 
     def set_mm_per_pixel(self, ppm):
         self.config.set("Frame settings", "mm_per_pixel", str(ppm))
 
-    def set_outlier_movement_criterion(self, criterion):
-        self.config.set("Outlier settings",
-                        "movement_criterion", str(criterion))
-
-    def set_outlier_location_criterion(self, criterion):
-        self.config.set("Outlier settings",
-                        "location_criterion", str(criterion))
-
-    def set_outlier_mean_or_median(self, what="mean"):
-        self.config.set("Outlier settings", "mean_or_median", str(what))
-
-    def set_process_movements(self, body_parts):
-        for index, bp in enumerate(body_parts):
-            self.config.set("process movements", "animal_" +
-                            str(index + 1) + "_bp", bp)
-        self.config.set("process movements", "no_of_animals",
-                        str(len(body_parts)))
-
     def set_roi_settings_no_of_animals(self, no):
         self.config.set("ROI settings", "no_of_animals", str(no))
-
-    def set_heat_locations(self, body_part, palette, classifier, bin_size, scale):
-        self.config.set("Heatmap location", "body_part", body_part)
-        self.config.set("Heatmap location", "Palette", palette)
-        self.config.set("Heatmap location", "Scale_max_seconds", str(scale))
-        self.config.set("Heatmap location", "bin_size_pixels", str(bin_size))
-
-    def set_classifier(self, classifier):
-        self.config.set("create ensemble settings", "classifier", classifier)
 
     def get_generated_model_path(self, classifier):
         return self.config.get("SML settings", "model_path_1")
@@ -123,7 +133,11 @@ def cli():
     help="How many body parts to track.",
 )
 @click.option(
-    "--animal-no", "-n", required=True, default=2, help="No of animals to analyze."
+    "--animal-no",
+    "-n",
+    required=True,
+    default=2,
+    help="No of animals to analyze.",
 )
 @click.option(
     "--video",
@@ -131,9 +145,28 @@ def cli():
     required=True,
     help="Path to video. The video will be copied to project folder.",
 )
-@click.option("--csv", "-s", required=True, help="Path to video's Deeplabcut CSV.")
+@click.option(
+    "--csv", "-s", required=True, help="Path to video's Deeplabcut CSV."
+)
+@click.option(
+    "--template-ini",
+    "-t",
+    required=False,
+    help="Template config ini used to import analysis settings.",
+)
 @click.argument("name", nargs=1)
-def create(path, classifiers, tracking_method, body_parts, animal_no, video, csv, name):
+def create(
+    path,
+    classifiers,
+    tracking_method,
+    body_parts,
+    animal_no,
+    video,
+    csv,
+    name,
+    template_ini=None,
+):
+
     targets = classifiers.split(",")
 
     # compute index to pull body part header from  pose config
@@ -193,64 +226,75 @@ def create(path, classifiers, tracking_method, body_parts, animal_no, video, csv
     config.file_csv.filePath.set(csv)
     config.import_singlecsv()
 
+    if template_ini:
+        config = MyConfig(path_to_ini)
+        config.merge_with_template(template_ini)
+
 
 cli.add_command(create)
 
 
 @click.command()
-@click.option("--classifier", required=True, help="Classifier you want to compute w/.")
-@click.option("--skip-plots", default=1, help="True to skip visualizations.")
-@click.option("--skip-labelling", default=1, help="True to skip agression labelling.")
 @click.option(
-    "--skip-video-validation", default=1, help="True to skip video validation."
+    "--classifier", required=True, help="Classifier you want to compute w/."
+)
+@click.option("--skip-plots", default=0, help="True to skip visualizations.")
+@click.option(
+    "--skip-labelling", default=0, help="True to skip agression labelling."
+)
+@click.option(
+    "--skip-video-validation", default=0, help="True to skip video validation."
 )
 @click.argument("path-to-ini", nargs=1)
-def analyze(path_to_ini, classifier, skip_plots, skip_labelling, skip_video_validation):
+def analyze(
+    path_to_ini, classifier, skip_plots, skip_labelling, skip_video_validation
+):
     current_video = "tmp"
 
     config = MyConfig(path_to_ini)
-    config.set_classifier(classifier)
-
-    # set ppm
-    config.set_distance_mm(245)
-    config.set_mm_per_pixel(9.124)
-    config.write_to_disk()
 
     # extract frames
+    logger.debug("Extract video frames")
     videopath = os.path.join(os.path.dirname(path_to_ini), "videos")
     extract_frames_ini(videopath, path_to_ini)
 
     # generate video parameters
+    logger.debug("Generate video info CSV")
     v = video_info_table(path_to_ini)
     v.generate_video_info_csv()
 
     # create outlier settings
+    logger.debug("Correct outliers")
     o = outlier_settings(path_to_ini)
-    o.set_outliersettings()
-    config.read_from_disk()
-    config.set_outlier_movement_criterion(0.7)
-    config.set_outlier_location_criterion(1.5)
-    config.set_outlier_mean_or_median("mean")
-    config.write_to_disk()
 
     # correct outlier
     l = loadprojectini(path_to_ini)
     l.correct_outlier()
 
     # extract features
+    # TODO: output feature csv path is coded, and is not returned!
+    # This makes it impossible to automate `trainmodel` w/o also
+    # hardcoding the path. This is a pitfall of simba's design.
+    logger.debug("Extract features")
     l.extractfeatures()
 
     # label behavior
     if not skip_labelling:
+        logger.debug("Simulation of labelling behaviors")
         frame_path = os.path.join(config.get_frame_input_path(), current_video)
         la.frames_in = [x for x in os.listdir(frame_path) if ".png" in x]
         la.reset()
         la.frames_in = sorted(la.frames_in, key=lambda x: int(x.split(".")[0]))
 
-        la.current_video = current_video
-        la.configure(path_to_ini)
+        # initialize module globals
+        number_of_targets = config.config.get("SML settings", "No_targets")
+        for i in range(1, int(number_of_targets) + 1):
+            target = config.config.get("SML settings", "target_name_" + str(i))
+            la.columns.append(target)
+            la.behaviors.append(0)
+            la.df[la.columns[i - 1]] = 0
 
-        # la.choose_folder(path_to_ini)
+        la.current_video = current_video
         la.curent_frame_number = 0
         la.behaviors[0] = 1
         la.save_values(0, 50)
@@ -262,6 +306,7 @@ def analyze(path_to_ini, classifier, skip_plots, skip_labelling, skip_video_vali
             "features_extracted",
             "{}.csv".format(current_video),
         )
+
         output_file = os.path.join(
             config.config.get("create ensemble settings", "data_folder"),
             "{}.csv".format(current_video),
@@ -270,21 +315,30 @@ def analyze(path_to_ini, classifier, skip_plots, skip_labelling, skip_video_vali
         new_data = pd.concat([data, la.df], axis=1)
         new_data = new_data.fillna(0)
         new_data.rename(columns={"Unnamed: 0": "scorer"}, inplace=True)
-
         new_data.to_csv(output_file, index=False)
-        print(output_file)
-        print("Annotation file for {} created.".format(current_video))
 
     # train single model
+    logger.debug("Training model")
     trainmodel2(path_to_ini)
 
     # run model
-    csv = "/app/output/testme2/project_folder/csv/features_extracted/tmp.csv"
+    logger.debug("Running model")
+    projectPath = config.config.get("General settings", "csv_path")
+    extracted_features = (
+        os.path.join(
+            projectPath,
+            "csv",
+            "features_extracted",
+            "{}.csv".format(current_video),
+        ),
+    )
+
     config.read_from_disk()
     sav = config.get_generated_model_path(classifier)
-    validate_model_one_vid_1stStep(path_to_ini, csv, sav)
+    validate_model_one_vid_1stStep(path_to_ini, extracted_features, sav)
 
     # validate model single vid
+    logger.debug("Validate video model")
     discrimination_threshold = config.get_discrimination_threshold()
     min_bout_length = config.get_min_bout_length()
     generate_gannt = 0  # 1 to generate
@@ -299,9 +353,11 @@ def analyze(path_to_ini, classifier, skip_plots, skip_labelling, skip_video_vali
         )
 
     # run RF model
+    logger.debug("Run RF model")
     rfmodel(path_to_ini)
 
     # analyze machine prediction
+    logger.debug("Analyze machine prediction")
     cols = [
         "# bout events",
         "total events duration (s)",
@@ -314,21 +370,18 @@ def analyze(path_to_ini, classifier, skip_plots, skip_labelling, skip_video_vali
     analyze_process_data_log(path_to_ini, cols)
 
     # analyze distance/velocity
+    logger.debug("Analyze distance/velocity")
     animal_vars = ["Ear_left_1", "Ear_left_2"]
     config.set_process_movements(animal_vars)
 
-    body_part = "Center_1"
-    bin_size_pixels = 200
-    scale_max_seconds = "auto"
-
-    # values: gnuplot2, plasma, magma, jet, inferno, viridis
-    palette = "gnuplot2"
-    config.set_heat_locations(
-        body_part, palette, classifier, bin_size_pixels, scale_max_seconds
+    body_part = config.config.get("Heatmap settings", "body_part")
+    bin_size_pixels = config.config.get("Heatmap settings", "bin_size_pixels")
+    scale_max_seconds = config.config.get(
+        "Heatmap settings", "scale_max_seconds"
     )
 
-    config.set_roi_settings_no_of_animals(2)
-    config.write_to_disk()
+    # values: gnuplot2, plasma, magma, jet, inferno, viridis
+    palette = config.config.get("Heatmap settings", "palette")
 
     # analyze distances/velocity
     ROI_process_movement(path_to_ini)

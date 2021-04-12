@@ -14,6 +14,25 @@ Two dockers will be created: Simba is based on a `miniconda` base image, and `de
 For consequetive runs, `docker-compose up -d simba` if you only want
 simba to run. For both deeplabcut & simba, `docker-compose up -d`.
 
+# cli
+
+## To create a new project
+
+```shell
+python main.py create \
+  -p /app/output \
+  -c mating \
+  -t classic \
+  -b 16 \
+  -n 2 \
+  -v /app/videos/tmp.mp4 \
+  -s /app/videos/tmp.csv \
+  -t template-config.ini \
+  testme2
+```
+
+
+
 # Example output file structure
 
 Simba is heavily relying on the local file system as a transportation
