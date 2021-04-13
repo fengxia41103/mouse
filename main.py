@@ -243,11 +243,21 @@ cli.add_command(create)
     "--skip-labelling", default=0, help="True to skip agression labelling."
 )
 @click.option(
-    "--skip-video-validation", default=0, help="True to skip video validation."
+    "--skip-model-validation", default=0, help="True to skip model validation."
+)
+@click.option("--skip-training", default=0, help="True to skip model training.")
+@click.option(
+    "--skip-modelling", default=0, help="True to skip running models entirely."
 )
 @click.argument("path-to-ini", nargs=1)
 def analyze(
-    path_to_ini, classifier, skip_plots, skip_labelling, skip_video_validation
+    path_to_ini,
+    classifier,
+    skip_plots,
+    skip_labelling,
+    skip_model_validation,
+    skip_training,
+    skip_modelling,
 ):
     current_video = "tmp"
 
@@ -262,6 +272,15 @@ def analyze(
     logger.debug("Generate video info CSV")
     v = video_info_table(path_to_ini)
     v.generate_video_info_csv()
+    # TODO: video SAV's PPM will be default to 0!
+    ppm = config.config.getfloat("Frame settings", "mm_per_pixel")
+    logger.debug("-" * 50)
+    logger.debug(ppm)
+    project_path = config.config.get("General settings", "project_path")
+    video_info_csv = os.path.join(project_path, "logs", "video_info.csv")
+    df = pd.read_csv(video_info_csv, dtype={"pixels/mm": float})
+    df.at[0, "pixels/mm"] = ppm
+    df.to_csv(video_info_csv, index=False)
 
     # create outlier settings
     logger.debug("Correct outliers")
@@ -277,6 +296,11 @@ def analyze(
     # hardcoding the path. This is a pitfall of simba's design.
     logger.debug("Extract features")
     l.extractfeatures()
+    extracted_features_csv = os.path.join(
+        config.config.get("General settings", "csv_path"),
+        "features_extracted",
+        "{}.csv".format(current_video),
+    )
 
     # label behavior
     if not skip_labelling:
@@ -301,60 +325,61 @@ def analyze(
         la.behaviors[0] = 0
         la.save_values(51, len(la.frames_in))
 
-        input_file = os.path.join(
-            config.config.get("General settings", "csv_path"),
-            "features_extracted",
-            "{}.csv".format(current_video),
-        )
-
         output_file = os.path.join(
             config.config.get("create ensemble settings", "data_folder"),
             "{}.csv".format(current_video),
         )
-        data = pd.read_csv(input_file)
+        data = pd.read_csv(extracted_features_csv)
         new_data = pd.concat([data, la.df], axis=1)
         new_data = new_data.fillna(0)
         new_data.rename(columns={"Unnamed: 0": "scorer"}, inplace=True)
         new_data.to_csv(output_file, index=False)
 
     # train single model
-    logger.debug("Training model")
-    trainmodel2(path_to_ini)
+    if not skip_training:
+        logger.debug("Training model")
+        trainmodel2(path_to_ini)
 
-    # run model
-    logger.debug("Running model")
-    projectPath = config.config.get("General settings", "csv_path")
-    extracted_features = (
-        os.path.join(
-            projectPath,
-            "csv",
-            "features_extracted",
-            "{}.csv".format(current_video),
-        ),
-    )
+        # default value for this setting is wrong.
+        target = config.config.get("SML settings", "target_name_1")
+        model_path = config.config.get("SML settings", "model_dir")
+        generated_model_path = os.path.join(
+            model_path, "generated_models", "{}.sav".format(target)
+        )
+        config.config.set("SML settings", "model_path_1", generated_model_path)
+        config.write_to_disk()
 
-    config.read_from_disk()
-    sav = config.get_generated_model_path(classifier)
-    validate_model_one_vid_1stStep(path_to_ini, extracted_features, sav)
+        # proceed
+        validate_model_one_vid_1stStep(
+            path_to_ini, extracted_features_csv, generated_model_path
+        )
 
     # validate model single vid
-    logger.debug("Validate video model")
-    discrimination_threshold = config.get_discrimination_threshold()
-    min_bout_length = config.get_min_bout_length()
-    generate_gannt = 0  # 1 to generate
-    if not skip_video_validation:
+    if not skip_model_validation:
+        logger.debug("Validate video model")
+        discrimination_threshold = config.config.get(
+            "threshold_settings", "threshold_1"
+        )
+        min_bout_length = config.config.get(
+            "Minimum_bout_lengths", "min_bout_1"
+        )
+        generate_gannt = (
+            config.config.get("validation/run model", "save_gantt") == "yes"
+        )
+        # generate_gannt = 0  # 1 to generate
         validate_model_one_vid(
             path_to_ini,
-            csv,
-            sav,
+            extracted_features_csv,
+            generated_model_path,
             discrimination_threshold,
             min_bout_length,
             generate_gannt,
         )
 
     # run RF model
-    logger.debug("Run RF model")
-    rfmodel(path_to_ini)
+    if not skip_modelling:
+        logger.debug("Run RF model")
+        rfmodel(path_to_ini)
 
     # analyze machine prediction
     logger.debug("Analyze machine prediction")
@@ -371,39 +396,34 @@ def analyze(
 
     # analyze distance/velocity
     logger.debug("Analyze distance/velocity")
-    animal_vars = ["Ear_left_1", "Ear_left_2"]
-    config.set_process_movements(animal_vars)
-
-    body_part = config.config.get("Heatmap settings", "body_part")
-    bin_size_pixels = config.config.get("Heatmap settings", "bin_size_pixels")
-    scale_max_seconds = config.config.get(
-        "Heatmap settings", "scale_max_seconds"
-    )
-
-    # values: gnuplot2, plasma, magma, jet, inferno, viridis
-    palette = config.config.get("Heatmap settings", "palette")
 
     # analyze distances/velocity
     ROI_process_movement(path_to_ini)
 
     # time bins machine prediction
-    time_bin_size = 20
+    logger.debug("Analyze w/ time bin")
+    time_bin_size = config.config.getint(
+        "Analysis settings", "distance_velocity_time_bin_size"
+    )
     time_bins_classifier(path_to_ini, time_bin_size)
 
     # time bins distance/velocity
     time_bins_movement(path_to_ini, time_bin_size)
 
     # analyze severity
-    severity_scale = 5  # must > 1!
+    logger.debug("Analyze severity")
+    severity_scale = config.config.getint("Analysis settings", "severity_scale")
     analyze_process_severity(path_to_ini, severity_scale, classifier)
 
     if skip_plots:
         return
 
     # plot gannt
+    logger.debug("Plotting gannt chart")
     ganntplot_config(path_to_ini)
 
     # plot sklearn result
+    logger.debug("Plotting sklearn results")
     create_video = 1  # 0 or 1
     create_frame = 1  # 0 or 1
     plotsklearnresult(path_to_ini, create_video, create_frame)
@@ -418,7 +438,16 @@ def analyze(
     line_plot_config(path_to_ini)
 
     # heatmap
-    body_part = "Center_1"
+    body_part = config.config.get("Heatmap settings", "body_part")
+    bin_size_pixels = config.config.getint(
+        "Heatmap settings", "bin_size_pixels"
+    )
+    scale_max_seconds = config.config.get(
+        "Heatmap settings", "scale_max_seconds"
+    )
+
+    # values: gnuplot2, plasma, magma, jet, inferno, viridis
+    palette = config.config.get("Heatmap settings", "palette")
     last_image_only = 0  # 0 or 1
     plotHeatMap(
         path_to_ini,

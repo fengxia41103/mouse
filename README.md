@@ -16,7 +16,35 @@ simba to run. For both deeplabcut & simba, `docker-compose up -d`.
 
 # cli
 
+We are to create a new project, `testme`, and run analysis of it.
+
 ## To create a new project
+
+
+CLI configurations:
+
+```shell
+Usage: main.py create [OPTIONS] NAME
+
+Options:
+  -p, --path TEXT             Path to project files.  [required]
+  -c, --classifiers TEXT      CSV w/o space in between for multiple
+                              classifiers.  [required]
+
+  -t, --tracking-method TEXT  Tracking method, ["classic", "multi"].
+  -b, --body-parts INTEGER    How many body parts to track.  [required]
+  -n, --animal-no INTEGER     No of animals to analyze.  [required]
+  -v, --video TEXT            Path to video. The video will be copied to
+                              project folder.  [required]
+
+  -s, --csv TEXT              Path to video's Deeplabcut CSV.  [required]
+  -t, --template-ini TEXT     Template config ini used to import analysis
+                              settings.
+
+  --help                      Show this message and exit.
+```
+
+And an example to create new project:
 
 ```shell
 python main.py create \
@@ -28,9 +56,36 @@ python main.py create \
   -v /app/videos/tmp.mp4 \
   -s /app/videos/tmp.csv \
   -t template-config.ini \
-  testme2
+  testme
 ```
 
+## To run analysis
+
+CLI options:
+
+```shell
+Usage: main.py analyze [OPTIONS] PATH_TO_INI
+
+Options:
+  --classifier TEXT               Classifier you want to compute w/.
+                                  [required]
+
+  --skip-plots INTEGER            True to skip visualizations.
+  --skip-labelling INTEGER        True to skip agression labelling.
+  --skip-model-validation INTEGER
+                                  True to skip model validation.
+  --skip-training INTEGER         True to skip model training.
+  --skip-modelling INTEGER        True to skip running models entirely.
+  --help                          Show this message and exit.
+```
+
+Example to run an existing project from start to finish without skipping a bit:
+
+```shell
+python main.py analyze \
+  --classifier mating
+  /apt/output/testme/projct_folder/project_config.ini
+```
 
 
 # Example output file structure
