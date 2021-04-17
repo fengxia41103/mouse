@@ -84,27 +84,6 @@ class MyConfig:
         # write back to disk
         self.write_to_disk()
 
-    def set_distance_mm(self, distance):
-        self.config.set("Frame settings", "distance_mm", str(distance))
-
-    def set_mm_per_pixel(self, ppm):
-        self.config.set("Frame settings", "mm_per_pixel", str(ppm))
-
-    def set_roi_settings_no_of_animals(self, no):
-        self.config.set("ROI settings", "no_of_animals", str(no))
-
-    def get_generated_model_path(self, classifier):
-        return self.config.get("SML settings", "model_path_1")
-
-    def get_discrimination_threshold(self):
-        return self.config.get("threshold_settings", "threshold_1")
-
-    def get_min_bout_length(self):
-        return self.config.get("Minimum_bout_lengths", "min_bout_1")
-
-    def get_frame_input_path(self):
-        return self.config.get("Frame settings", "frames_dir_in")
-
 
 @click.group()
 def cli():
@@ -150,7 +129,7 @@ def cli():
 )
 @click.option(
     "--template-ini",
-    "-t",
+    "-i",
     required=False,
     help="Template config ini used to import analysis settings.",
 )
@@ -214,30 +193,34 @@ def create(
         animalNo=str(animal_no),
         csvorparquet="csv",  # workflow type
     )
+    myconfig = MyConfig(path_to_ini)
 
     # importing single video
     copy_singlevideo_ini(path_to_ini, video)
+    video_name = os.path.basename(video)
+    project_root = myconfig.config.get("General settings", "project_path")
+    video_copied_to = os.path.join(project_root, "videos", video_name)
+    myconfig.config.set("General settings", "video", video_copied_to)
 
     # importing csv
     # Note: Unfortunately, there are data cleanse happening in Simba code,
     # so I have to use its code instead of a direct func call.
-    config = project_config()
-    config.configinifile = path_to_ini
-    config.file_csv.filePath.set(csv)
-    config.import_singlecsv()
+    c = project_config()
+    c.configinifile = path_to_ini
+    c.file_csv.filePath.set(csv)
+    c.import_singlecsv()
 
     if template_ini:
-        config = MyConfig(path_to_ini)
-        config.merge_with_template(template_ini)
+        myconfig.merge_with_template(template_ini)
+
+    # flush config to disk
+    myconfig.write_to_disk()
 
 
 cli.add_command(create)
 
 
 @click.command()
-@click.option(
-    "--classifier", required=True, help="Classifier you want to compute w/."
-)
 @click.option("--skip-plots", default=0, help="True to skip visualizations.")
 @click.option(
     "--skip-labelling", default=0, help="True to skip agression labelling."
@@ -252,16 +235,17 @@ cli.add_command(create)
 @click.argument("path-to-ini", nargs=1)
 def analyze(
     path_to_ini,
-    classifier,
     skip_plots,
     skip_labelling,
     skip_model_validation,
     skip_training,
     skip_modelling,
 ):
-    current_video = "tmp"
 
     config = MyConfig(path_to_ini)
+    classifier = config.config.get("validation/run model", "classifier_name")
+    current_video = config.config.get("General settings", "video")
+    current_video = os.path.splitext(os.path.basename(current_video))[0]
 
     # extract frames
     logger.debug("Extract video frames")
@@ -305,7 +289,8 @@ def analyze(
     # label behavior
     if not skip_labelling:
         logger.debug("Simulation of labelling behaviors")
-        frame_path = os.path.join(config.get_frame_input_path(), current_video)
+        frame_input_path = config.config.get("Frame settings", "frames_dir_in")
+        frame_path = os.path.join(frame_input_path, current_video)
         la.frames_in = [x for x in os.listdir(frame_path) if ".png" in x]
         la.reset()
         la.frames_in = sorted(la.frames_in, key=lambda x: int(x.split(".")[0]))
