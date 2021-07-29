@@ -29,3 +29,5 @@ services:
     volumes:
       - ./videos:/app/videos
       - ./output:/app/output
+
+    command: python -m deeplabcut
