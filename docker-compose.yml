@@ -7,7 +7,7 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile-conda
-    image: simba-python36
+    image: simba-python36-2
     environment:
       # only works for Linux
       DISPLAY:
@@ -25,9 +25,13 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile-deep
-    image: deeplabcut-python37
+    image: deeplabcut-python37-2
     volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix #Static - needed to display atom on your host
       - ./videos:/app/videos
       - ./output:/app/output
 
-    command: python -m deeplabcut
+    environment:
+      # only works for Linux
+      DISPLAY:
+    command: /opt/conda/envs/DLC-CPU/bin/python -m deeplabcut

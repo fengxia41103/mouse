@@ -1,7 +1,61 @@
-FROM python:3.7
-ENV PYTHONUNBUFFERED 1
+FROM continuumio/miniconda3
+
+# name your environment and choose python 3.x version
+ARG conda_env=deep
+
+
+# Install system packages
+
+# https://askubuntu.com/questions/1073145/how-to-install-wxpython-4-ubuntu-18-04
+# https://github.com/wxWidgets/Phoenix/blob/master/README.rst#prerequisites
+
+RUN apt-get update && apt-get install -y \
+    dpkg-dev \
+    build-essential \
+    python3.7-dev \
+    libpython3.7-dev \
+    freeglut3-dev \
+    libgl1-mesa-dev \
+    libglu1-mesa-dev \
+    libgstreamer-plugins-base1.0-dev \
+    libgtk-3-dev \
+    libjpeg-dev \
+    libnotify-dev \
+    libpng-dev \
+    libsdl2-dev \
+    libsm-dev \
+    libtiff-dev \
+    libwebkit2gtk-4.0-dev \
+    libxtst-dev \
+    python-wxgtk3.0 \
+    libgtk2.0-0
+
+RUN mkdir /app
+WORKDIR /app
+
+# Make RUN commands use `bash --login`:
+SHELL ["/bin/bash", "--login", "-c"]
+
+# Create the environment:
+COPY DLC-CPU.yaml .
+RUN conda env create -f DLC-CPU.yaml
+
+# Initialize conda in bash config fiiles:
+RUN conda init bash
+
+# Update conda
+RUN conda update conda
+
+# Activate the environment, and make sure it's activated:
+RUN echo "conda init bash" >> ~/.bashrc
+RUN echo "conda activate DLC-CPU" >> ~/.bashrc
+RUN echo "Make sure conda python3.6 is installed:"
+
+# Make RUN commands use the new environment:
+SHELL ["conda", "run", "-n", "DLC-CPU", "/bin/bash", "-c"]
 
 # Upgrade pip
-RUN pip install --upgrade pip
-RUN pip install tensorflow==1.15.0
-RUN pip install deeplabcut
+# RUN pip install --upgrade pip
+#RUN conda install cudatoolkit=11.1 -c conda-forge
+RUN pip install deeplabcut==2.2rc2
+# RUN conda install -U wxPython
