@@ -35,3 +35,12 @@ services:
       # only works for Linux
       DISPLAY:
     command: /opt/conda/envs/DLC-CPU/bin/python -m deeplabcut
+
+  project:
+    build:
+      context: .
+      dockerfile: ./Dockerfile-taskjuggler
+    image: taskjuggler
+    volumes:
+      - ./project:/project
+    command: tj3 main.tjp

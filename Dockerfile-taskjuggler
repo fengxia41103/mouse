@@ -1,0 +1,7 @@
+FROM ruby:latest
+
+RUN mkdir /project
+WORKDIR /project
+
+RUN gem install taskjuggler
+RUN gem update taskjuggler
