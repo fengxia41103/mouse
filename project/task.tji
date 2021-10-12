@@ -1,0 +1,156 @@
+task Behavior "Define mouse behaviors subject domain" {
+  start ${projectstart}
+  allocate shen, chen
+
+  task collect_existing_reference "Collect existing references of such behavior categorization or definitions" {
+    effort 5d
+  }
+
+  task define_our_list_and_definition "Create list and definition of behaviros we are to analyze" {
+    effort 5d
+    depends !collect_existing_reference
+  }
+
+  task write_definition_doc "Write online doc w/ details of list and definition decisions" {
+    effort 5d
+    depends !define_our_list_and_definition
+    allocate shen, feng
+  }
+
+}
+
+task Videos "Establish video repositories" {
+  start ${projectstart}
+
+  task google_drive "Setup Google drive for videos used as analyzer inputs" {
+    effort 5d
+    allocate chen, luna
+  }
+
+  task youtube "Setup youtube account for videos as result of analysis" {
+    effort 5d
+    allocate jiang
+  }
+
+  task video_category "Create video meta/categories" {
+    effort 5d
+    depends !!Behavior.define_our_list_and_definition
+    allocate luna, jiang
+
+    note "Four types of videos: raw, training, tagged-input, and tagged-output"
+  }
+
+  task org_videos "Organize existing videos" {
+    depends !video_category
+
+    task org_raw_videos "Organize raw videos based on defined video meta" {
+      effort 5d
+      allocate luna
+    }
+
+    task org_result_videos "Organize result videos based on defined video meta" {
+      effort 5d
+      allocate dev
+    }
+  }
+
+  task video_site "Create video repo site" {
+
+    task setup_github_page "Setup github pages" {
+      effort 2d
+      allocate feng
+      note "Use main slides as landing page"
+    }
+
+    task link_video_to_site "Link organized videos to site" {
+      effort 2d
+      depends !!org_videos
+      allocate dev
+    }
+  }
+}
+
+task Analyzer "Build a repeatable analyzer dev env" {
+  start ${projectstart}
+  allocate dev
+
+  task collect_existing_code "Organize all existing code into github" {
+    effort 2d
+  }
+
+  task replicate_dev_env "Replicate existing analysis run" {
+    depends !collect_existing_code
+
+    task for_jiang "Jiang's" {
+      task replicate_jiang "Relicate Jiang's workflow" {
+        effort 5d
+      }
+
+      task document_jiang "Document Jiang's env" {
+        effort 3d
+        depends !replicate_jiang
+      }
+
+      task demo "Demo day for Jiang's" {
+        length 2h
+        depends !document_jiang
+        ${all_hands}
+
+        note "Demo should be done by someone other than the original maintainer"
+      }
+    }
+
+    task for_chen "Chen's" {
+      task replicate_chen "Relicate Chen's workflow" {
+        effort 5d
+      }
+
+      task document_chen "Document Chen's env" {
+        effort 3d
+        depends !replicate_chen
+      }
+
+      task demo "Demo day for Jiang's" {
+        length 2h
+        depends !document_chen
+        ${all_hands}
+
+        note "Demo should be done by someone other than the original maintainer"
+      }
+    }
+  }
+
+  task normalize_input_output "Create standard input & output formats" {
+    depends !replicate_dev_env
+
+    task normalize_inputs "Create normalized inputs for both workflows" {
+      effort 2w
+    }
+
+    task normalize_outputs "Create normalized outputs for both workflows" {
+      effort 2w
+    }
+  }
+
+  task establish_tests "Create test framework" {
+    depends !replicate_dev_env
+
+    task positive_input "Create tests w/ positive inputs" {
+      effort 3d
+    }
+
+    task negative_input "Create test w/ negative inputs" {
+      effort 3d
+    }
+  }
+
+  task establish_cicd "Refine test iteration to create CI/CD" {
+    effort 2w
+  }
+}
+
+task Deliverables "Deliverables" {
+  task training_video_repo "Training video repository" {
+    depends Videos
+  }
+}

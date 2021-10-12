@@ -1,4 +1,4 @@
-project Mouse "AI-powered Mouse Behavior Analysis"  2021-10-12 +2m {
+project Mouse "AI-powered Mouse Behavior Analysis"  2021-10-18 +6m {
 
   # Set the default time zone for the project. If not specified, UTC
   # is used.
@@ -43,9 +43,6 @@ project Mouse "AI-powered Mouse Behavior Analysis"  2021-10-12 +2m {
 leaves holiday "Christmas" 2021-12-24 +3d,
      holiday "New Year" 2021-12-31 +3d
 
-# Default resource rate per hour
-rate 390.0
-
 # Flags
 flags team
 
@@ -77,76 +74,10 @@ resource dev "Developers" {
   flags team
 }
 
-task Behavior "Define mouse behaviors subject domain" {
-  start 2021-10-15
+macro all_hands [allocate shen, chen, dev]
 
-  task collect_existing_reference "Collect existing references of such behavior categorization or definitions" {
-    length 5d
-    allocate shen, chen
-  }
-
-  task define_our_list_and_definition "List and definition of behaviros we are to analyze" {
-    length 5d
-    depends !collect_existing_reference
-    allocate shen, chen
-  }
-
-  task write_definition_doc "Write online doc w/ details of list and definition decisions" {
-    length 5d
-    depends !define_our_list_and_definition
-    allocate shen, feng
-  }
-
-}
-
-task Videos "Organize video inputs & outputs" {
-  start 2021-10-15
-
-  task google_drive "Setup Google drive for videos used as analyzer inputs" {
-    length 5d
-    allocate chen, luna
-  }
-
-  task youtube "Setup youtube account for videos as result of analysis" {
-    length 5d
-    allocate jiang
-  }
-
-  task video_category "Create video meta/categories" {
-    length 5d
-    depends !!Behavior.define_our_list_and_definition
-    allocate luna, jiang
-  }
-
-  task org_videos "Organize existing videos" {
-    depends !video_category
-
-    task org_raw_videos "Organize raw videos based on defined video meta" {
-      length 5d
-      allocate luna
-    }
-
-    task org_result_videos "Organize result videos based on defined video meta" {
-      length 5d
-      allocate dev
-    }
-  }
-}
-
-task Analyzer "Build a repeatable analyzer dev env" {
-  start 2021-10-21
-
-  task do_sth "Do something" {
-    length 5d
-  }
-}
-
-task Deliverables "Deliverables" {
-  task training_video_repo "Training video repository" {
-    depends Videos
-  }
-}
-
+# Tasks are defined here!!!
+include "task.tji"
 
 # Now the project has been specified completely. Stopping here would
 # result in a valid TaskJuggler file that could be processed and
@@ -178,7 +109,7 @@ macro TaskTip [
 
 textreport frame "" {
   header -8<-
-    == Mouse Software Project ==
+    == AI-powered Mouse Behavior Analysis Project ==
     <[navigator id="navbar"]>
   ->8-
   footer "----"
@@ -224,20 +155,8 @@ textreport frame "" {
 
 # A traditional Gantt chart with a project overview.
 taskreport overview "" {
-  header -8<-
-    === Project Overview ===
-
-    The project is structured into 3 phases.
-
-    # Specification
-    # <-reportlink id='frame.development'->
-    # Testing
-
-    === Original Project Plan ===
-  ->8-
   columns bsi { title 'WBS' },
-          name, start, end, effort, cost,
-          revenue, chart { ${TaskTip} }
+          name, start, end, effort, chart { ${TaskTip} }
   # For this report we like to have the abbreviated weekday in front
   # of the date. %a is the tag for this.
   timeformat "%a %Y-%m-%d"
@@ -252,10 +171,7 @@ taskreport overview "" {
     detailed resource allocations.
 
     === Current Status ===
-
-    The project started off with a delay of 4 days. This slightly affected
-    the original schedule. See [[Deliveries]] for the impact on the
-    delivery dates.
+    TBD
   ->8-
 }
 
