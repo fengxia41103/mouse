@@ -1,4 +1,4 @@
-project Mouse "AI-powered Mouse Behavior Analysis"  2021-10-18 +6m {
+project Mouse "AI-powered Mouse Behavior Analysis"  2021-10-13 +6m {
 
   # Set the default time zone for the project. If not specified, UTC
   # is used.
@@ -28,15 +28,21 @@ project Mouse "AI-powered Mouse Behavior Analysis"  2021-10-18 +6m {
   currency "USD"
 
   # We want to compare the baseline scenario to one with a slightly
-  # delayed start.
+  # actual start.
   scenario plan "Plan" {
-    scenario delayed "Delayed"
+    scenario actual "Actual"
+    scenario test "Test Scenario" {
+      active no
+    }
   }
 
   # Resources
   extend resource {
     text Phone "Phone"
   }
+
+  # Output folder
+  outputdir "/reports"
 }
 
 # Global holidays
@@ -190,7 +196,7 @@ taskreport status "" {
           alert { tooltip plan.journal
                           != '' "<-query attribute='journal'->" width 150 },
           status { width 150 }
-  scenarios delayed
+  scenarios actual
 
   taskreport dashboard "" {
     headline "Project Dashboard (<-query attribute='now'->)"
@@ -204,26 +210,26 @@ taskreport status "" {
     journalmode status_up
     journalattributes headline, author, date, summary, details
     hidetask ~hasalert(0)
-    sorttasks alert.down, delayed.end.up
+    sorttasks alert.down, actual.end.up
     period %{${now} - 1w} +1w
   }
   taskreport completed "" {
     headline "Already completed tasks"
-    hidetask ~(delayed.end <= ${now})
+    hidetask ~(actual.end <= ${now})
   }
   taskreport ongoing "" {
     headline "Ongoing tasks"
-    hidetask ~((delayed.start <= ${now}) & (delayed.end > ${now}))
+    hidetask ~((actual.start <= ${now}) & (actual.end > ${now}))
   }
   taskreport future "" {
     headline "Future tasks"
-    hidetask ~(delayed.start > ${now})
+    hidetask ~(actual.start > ${now})
   }
 }
 
 # A list of tasks showing the resources assigned to each task.
 taskreport development "" {
-  scenarios delayed
+  scenarios actual
   headline "Development - Resource Allocation Report"
   columns bsi { title 'WBS' }, name, start, end, effort { title "Work" },
           duration, chart { ${TaskTip} scale day width 500 }
@@ -239,12 +245,12 @@ taskreport deliveries "" {
           chart { ${TaskTip} }
   taskroot Deliverables
   hideresource @all
-  scenarios plan, delayed
+  scenarios plan, actual
 }
 
 # A list of all employees with their contact details.
 resourcereport contactList "" {
-  scenarios delayed
+  scenarios actual
   headline "Contact list and duty plan"
   columns name,
           email { celltext 1 "[mailto:<-email-> <-email->]" },
@@ -259,7 +265,7 @@ resourcereport contactList "" {
 # A graph showing resource allocation. It identifies whether each
 # resource is under- or over-allocated for.
 resourcereport resourceGraph "" {
-  scenarios delayed
+  scenarios actual
   headline "Resource Allocation Graph"
   columns no, name, effort, rate, weekly { ${TaskTip} }
   loadunit shortauto

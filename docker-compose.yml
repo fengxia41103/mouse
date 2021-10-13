@@ -43,4 +43,5 @@ services:
     image: taskjuggler
     volumes:
       - ./project:/project
+      - ./docs/content/downloads:/reports
     command: tj3 main.tjp

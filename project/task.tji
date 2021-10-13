@@ -57,9 +57,11 @@ task Videos "Establish video repositories" {
   task video_site "Create video repo site" {
 
     task setup_github_page "Setup github pages" {
+      note "Use main slides as landing page"
       effort 2d
       allocate feng
-      note "Use main slides as landing page"
+
+      actual:complete 20
     }
 
     task link_video_to_site "Link organized videos to site" {
