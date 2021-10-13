@@ -131,3 +131,6 @@ dmypy.json
 # emacs
 *~
 [#].*
+
+# bower
+bower_components/

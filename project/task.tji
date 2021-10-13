@@ -120,6 +120,12 @@ task Analyzer "Build a repeatable analyzer dev env" {
     }
   }
 
+  task extract_script_configurations "Externalize script configurations" {
+    note "Remove all hardcoded values and hidden assumptions"
+    depends !replicate_dev_env
+    effort 1w
+  }
+
   task normalize_input_output "Create standard input & output formats" {
     depends !replicate_dev_env
 
@@ -153,14 +159,59 @@ task Analyzer "Build a repeatable analyzer dev env" {
 
 
 task Application "Build data driven web based application to simplify test runs" {
-  depends Analyzer.refactor_design
+  start ${projectstart}
   allocate dev
 
-  task CICD "Refine iteration by  CI/CD" {
-    effort 2w
-    allocate dev
+  task scaffold_backend "Scaffold backend w/ queue execution capability" {
+    effort 3d
   }
 
+  task run_analyzer_as_task "Run analyzer scripts as queue tasks" {
+    effort 5d
+    depends !scaffold_backend
+  }
+
+  task build_config_data_models "Build configuration data models" {
+    effort 3d
+    depends Analyzer.extract_script_configurations
+  }
+
+  task use_managed_configuration "Run analyzer scripts w/ configs managed by backend" {
+
+    effort 2d
+    depends !build_config_data_models
+  }
+
+  task build_input_data_models "Build script input data models" {
+    effort 3d
+    depends Analyzer.normalize_input_output.normalize_inputs
+  }
+
+  task use_managed_inputs "Run analyzer scripts w/ inputs managed by backend" {
+
+    effort 3d
+    depends !build_input_data_models
+  }
+
+  task build_output_data_models "Build script output data models" {
+    effort 3d
+    depends Analyzer.normalize_input_output.normalize_outputs
+  }
+
+  task create_managed_outputs "Put analyzer scripts outputs into backend" {
+    effort 3d
+    depends !build_output_data_models
+  }
+
+}
+
+task Logistics "Logistics" {
+  start ${projectstart}
+  ${all_hands}
+
+  task join_github "All join github project" {
+    effort 1d
+  }
 }
 
 task Deliverables "Deliverables" {
@@ -173,7 +224,12 @@ task Deliverables "Deliverables" {
   }
 
   task shareable_application "Shareable application" {
+    note "Ready for private use and public deployment"
     depends Application
+  }
+
+  task source_code "Opensource project" {
+    depends Logistics.join_github
   }
 
   task design_docs "Toolchain design docs" {
