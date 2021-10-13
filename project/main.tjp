@@ -17,7 +17,7 @@ project Mouse "AI-powered Mouse Behavior Analysis"  2021-10-18 +6m {
   # the project reports. If not specified, the current day will be
   # used, but this will likely be outside of the project range, so it
   # can't be seen in the reports.
-  now 2021-10-20-00:00
+  # now 2021-10-20-00:00
 
   # The date that is used to show additional line on a Gannt chart
   # and can be specified by the user.

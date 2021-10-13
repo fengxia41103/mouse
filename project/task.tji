@@ -75,11 +75,11 @@ task Analyzer "Build a repeatable analyzer dev env" {
   allocate dev
 
   task collect_existing_code "Organize all existing code into github" {
-    effort 2d
+    length 2d
   }
 
   task replicate_dev_env "Replicate existing analysis run" {
-    depends !collect_existing_code
+    depends !collect_existing_code {onstart}
 
     task for_jiang "Jiang's" {
       task replicate_jiang "Relicate Jiang's workflow" {
@@ -144,13 +144,43 @@ task Analyzer "Build a repeatable analyzer dev env" {
     }
   }
 
-  task establish_cicd "Refine test iteration to create CI/CD" {
-    effort 2w
+  task refactor_design "Refactor design by consolidating applicable workflows" {
+    effort 5d
+    depends !replicate_dev_env
+    allocate feng
   }
+}
+
+
+task Application "Build data driven web based application to simplify test runs" {
+  depends Analyzer.refactor_design
+  allocate dev
+
+  task CICD "Refine iteration by  CI/CD" {
+    effort 2w
+    allocate dev
+  }
+
 }
 
 task Deliverables "Deliverables" {
   task training_video_repo "Training video repository" {
     depends Videos
+  }
+
+  task end_2_end_working_analysis_run "End-to-end analysis run" {
+    depends Analyzer
+  }
+
+  task shareable_application "Shareable application" {
+    depends Application
+  }
+
+  task design_docs "Toolchain design docs" {
+    depends Analyzer.refactor_design
+  }
+
+  task analysis_reports "Analysis reports" {
+    depends Analyzer.establish_tests
   }
 }
