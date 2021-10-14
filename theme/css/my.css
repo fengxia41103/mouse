@@ -558,6 +558,8 @@ footer h5 {
 
 .reveal img{
   max-height: 550px;
+  border: none;
+  box-shadow: : none;
 }
 
 .reveal iframe{
