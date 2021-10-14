@@ -68,8 +68,10 @@ h6 {
     font-weight: normal !important;
 }
 
-.reveal img {
-    max-height: 550px;
+.reveal section img{
+  max-height: 550px;
+  border: unset;
+  box-shadow: unset;
 }
 
 .reveal iframe {
