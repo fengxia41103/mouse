@@ -57,6 +57,11 @@ why are we doing this
 
 # mission statement
 
+Objective and quantitative behavior classification, particularly in a
+naturalist environment, would greatly facilitate scientific
+research. Leveraging artificial intelligence tools, our goal is to
+provide a technical platform for efficient and rigorous behavioral
+classification in a user-friendly interface.
 
 We use computer's image processing power to identify mouse behavior
 through **image pattern recognition**.  By leveraging **artificial
