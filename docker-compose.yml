@@ -6,8 +6,8 @@ services:
   simba:
     build:
       context: .
-      dockerfile: ./Dockerfile-conda
-    image: simba-python36-2
+      dockerfile: ./Dockerfile-simba
+    image: simba-python36
     environment:
       # only works for Linux
       DISPLAY:
@@ -22,10 +22,17 @@ services:
     command: /opt/conda/envs/simba/bin/simba
 
   deep:
+    # use official image
+    #image: deeplabcut/deeplabcut:latest-gui
+
+    # if to build your own
     build:
       context: .
       dockerfile: ./Dockerfile-deep
-    image: deeplabcut-python37-2
+    image: deeplabcut-python36
+    command: /opt/conda/envs/DLC-CPU/bin/python -m deeplabcut
+
+    # common regardless image
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix #Static - needed to display atom on your host
       - ./videos:/app/videos
@@ -34,7 +41,7 @@ services:
     environment:
       # only works for Linux
       DISPLAY:
-    command: /opt/conda/envs/DLC-CPU/bin/python -m deeplabcut
+
 
   project:
     build:
