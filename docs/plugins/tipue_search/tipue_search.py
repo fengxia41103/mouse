@@ -26,46 +26,61 @@ except ImportError:
 
 
 class Tipue_Search_JSON_Generator(object):
-
     def __init__(self, context, settings, path, theme, output_path, *null):
 
         self.output_path = output_path
         self.context = context
-        self.siteurl = settings.get('SITEURL')
-        self.tpages = settings.get('TEMPLATE_PAGES')
+        self.siteurl = settings.get("SITEURL")
+        self.tpages = settings.get("TEMPLATE_PAGES")
         self.output_path = output_path
         self.json_nodes = []
 
     def create_json_node(self, page):
 
-        if getattr(page, 'status', 'published') != 'published':
+        if getattr(page, "status", "published") != "published":
             return
 
         soup_title = BeautifulSoup(
-            page.title.replace('&nbsp;', ' '), 'html.parser')
-        page_title = soup_title.get_text(' ', strip=True).replace(
-            '“', '"').replace('”', '"').replace('’', "'").replace('^', '&#94;')
+            page.title.replace("&nbsp;", " "), "html.parser"
+        )
+        page_title = (
+            soup_title.get_text(" ", strip=True)
+            .replace("“", '"')
+            .replace("”", '"')
+            .replace("’", "'")
+            .replace("^", "&#94;")
+        )
 
-        soup_text = BeautifulSoup(page.content, 'html.parser')
-        page_text = soup_text.get_text(' ', strip=True).replace('“', '"').replace(
-            '”', '"').replace('’', "'").replace('¶', ' ').replace('^', '&#94;')
-        page_text = ' '.join(page_text.split())
+        soup_text = BeautifulSoup(page.content, "html.parser")
+        page_text = (
+            soup_text.get_text(" ", strip=True)
+            .replace("“", '"')
+            .replace("”", '"')
+            .replace("’", "'")
+            .replace("¶", " ")
+            .replace("^", "&#94;")
+        )
+        page_text = " ".join(page_text.split())
 
-        page_category = page.category.name if getattr(
-            page, 'category', 'None') != 'None' else ''
+        page_category = (
+            page.category.name
+            if getattr(page, "category", "None") != "None"
+            else ""
+        )
 
-        page_url = page.url if page.url else '.'
+        page_url = page.url if page.url else "."
 
         # NOTE: `urljoin` without trailing "/" is strange!
         # urljoin("http://me.co/this", "that") => http://me.co/that!
         # urljoin("http://me.co/this/", "that") => http://me.co/this/that
-        page_url = urljoin(self.siteurl + "/",
-                           urllib.parse.quote(page_url))
+        page_url = urljoin(self.siteurl + "/", urllib.parse.quote(page_url))
 
-        node = {'title': page_title,
-                'text': page_text,
-                'tags': page_category,
-                'url': page_url}
+        node = {
+            "title": page_title,
+            "text": page_text,
+            "tags": page_category,
+            "url": page_url,
+        }
 
         self.json_nodes.append(node)
 
@@ -74,29 +89,33 @@ class Tipue_Search_JSON_Generator(object):
 
         Not sure when it will hit this function. Was in original plugin code.
         """
-        srcfile = open(os.path.join(self.output_path,
-                                    self.tpages[srclink]), encoding='utf-8')
-        soup = BeautifulSoup(srcfile, 'html.parser')
-        page_title = soup.title.string if soup.title is not None else ''
+        srcfile = open(
+            os.path.join(self.output_path, self.tpages[srclink]),
+            encoding="utf-8",
+        )
+        soup = BeautifulSoup(srcfile, "html.parser")
+        page_title = soup.title.string if soup.title is not None else ""
         page_text = soup.get_text()
 
         # Should set default category?
-        page_category = ''
+        page_category = ""
 
         page_url = urljoin(self.siteurl, self.tpages[srclink])
-        node = {'title': page_title,
-                'text': page_text,
-                'tags': page_category,
-                'url': page_url}
+        node = {
+            "title": page_title,
+            "text": page_text,
+            "tags": page_category,
+            "url": page_url,
+        }
 
         self.json_nodes.append(node)
 
     def generate_output(self, writer):
-        path = os.path.join(self.output_path, 'tipuesearch_content.json')
+        path = os.path.join(self.output_path, "tipuesearch_content.json")
 
-        pages = self.context['pages'] + self.context['articles']
+        pages = self.context["pages"] + self.context["articles"]
 
-        for article in self.context['articles']:
+        for article in self.context["articles"]:
             pages += article.translations
 
         for srclink in self.tpages:
@@ -104,10 +123,10 @@ class Tipue_Search_JSON_Generator(object):
 
         for page in pages:
             self.create_json_node(page)
-        root_node = {'pages': self.json_nodes}
+        root_node = {"pages": self.json_nodes}
 
-        with open(path, 'w', encoding='utf-8') as fd:
-            json.dump(root_node, fd, separators=(',', ':'), ensure_ascii=False)
+        with open(path, "w", encoding="utf-8") as fd:
+            json.dump(root_node, fd, separators=(",", ":"), ensure_ascii=False)
 
 
 def get_generators(generators):

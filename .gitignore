@@ -136,3 +136,6 @@ dmypy.json
 bower_components/
 
 .DS_Store/
+*.png
+*.jpg
+*.mp4

@@ -3,14 +3,12 @@ from configparser import ConfigParser
 
 import click
 import pandas as pd
-
 import simba.labelling_aggression as la
 from loguru import logger
 from simba.create_project_ini import write_inifile
 from simba.data_plot import data_plot_config
 from simba.gantt import ganntplot_config
-from simba.import_videos_csv_project_ini import copy_singlevideo_ini
-from simba.import_videos_csv_project_ini import extract_frames_ini
+from simba.import_videos_csv_project_ini import copy_singlevideo_ini, extract_frames_ini
 from simba.line_plot import line_plot_config
 from simba.merge_frames_movie import mergeframesPlot
 from simba.path_plot import path_plot_config
@@ -23,10 +21,12 @@ from simba.ROI_analysis_2 import roiAnalysis
 from simba.ROI_process_movement import ROI_process_movement
 from simba.run_RF_model import rfmodel
 from simba.runmodel_1st import validate_model_one_vid_1stStep
-from simba.SimBA import loadprojectini
-from simba.SimBA import outlier_settings
-from simba.SimBA import project_config
-from simba.SimBA import video_info_table
+from simba.SimBA import (
+    loadprojectini,
+    outlier_settings,
+    project_config,
+    video_info_table,
+)
 from simba.sklearn_plot_scripts.plot_sklearn_results_2 import plotsklearnresult
 from simba.timeBins_classifiers import time_bins_classifier
 from simba.timeBins_movement import time_bins_movement
@@ -268,18 +268,18 @@ def analyze(
 
     # create outlier settings
     logger.debug("Correct outliers")
-    o = outlier_settings(path_to_ini)
+    # o = outlier_settings(path_to_ini)
 
     # correct outlier
-    l = loadprojectini(path_to_ini)
-    l.correct_outlier()
+    l_proj = loadprojectini(path_to_ini)
+    l_proj.correct_outlier()
 
     # extract features
     # TODO: output feature csv path is coded, and is not returned!
     # This makes it impossible to automate `trainmodel` w/o also
     # hardcoding the path. This is a pitfall of simba's design.
     logger.debug("Extract features")
-    l.extractfeatures()
+    l_proj.extractfeatures()
     extracted_features_csv = os.path.join(
         config.config.get("General settings", "csv_path"),
         "features_extracted",

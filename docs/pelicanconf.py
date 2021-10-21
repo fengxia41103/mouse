@@ -11,8 +11,7 @@ PATH = "content"
 IGNORE_FILES = [".#*"]
 
 # These folders will be copied to `/output` without pelican modification
-STATIC_PATHS = ["images", "downloads",
-                "app", "data", "slides"]  # "extra/CNAME"
+STATIC_PATHS = ["images", "downloads", "app", "data", "slides"]  # "extra/CNAME"
 # EXTRA_PATH_METADATA = {'extra/CNAME': {'path': 'CNAME'}, }
 
 # must have this to copy `/slides` to output
