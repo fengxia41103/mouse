@@ -59,14 +59,14 @@ def get_video_data(path, limit=100):
 
         # gray = frame
         # percent by which the image is resized
-        scale_percent = 30
+        scale_percent = 20
 
         # calculate the 30 percent of original dimensions
         width = int(gray.shape[1] * scale_percent / 100)
         height = int(gray.shape[0] * scale_percent / 100)
 
         # resize for quicker processing
-        # width = height = 28
+        #width = height = 64
         output = cv2.resize(gray, (width, height))
 
         output = np.expand_dims(output, axis=2)

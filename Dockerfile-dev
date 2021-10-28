@@ -1,0 +1,30 @@
+FROM tensorflow/tensorflow
+
+RUN apt-get update && apt-get install -y \
+    dpkg-dev \
+    build-essential \
+    python3.7-dev \
+    libpython3.7-dev \
+    freeglut3-dev \
+    libgl1-mesa-dev \
+    libglu1-mesa-dev \
+    libgstreamer-plugins-base1.0-dev \
+    libgtk-3-dev \
+    libjpeg-dev \
+    libnotify-dev \
+    libpng-dev \
+    libsdl2-dev \
+    libsm-dev \
+    libtiff-dev
+
+RUN mkdir /app
+WORKDIR /app
+
+# Upgrade pip
+RUN pip install --upgrade pip
+RUN pip install pre-commit \
+  flake8 \
+  black \
+  tensorboard \
+  opencv-python \
+  pandas

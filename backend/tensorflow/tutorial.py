@@ -150,7 +150,7 @@ def main():
     # train model
     # TODO: magic number
     print("training model")
-    the_model.fit(train_images, train_labels, epochs=1)
+    the_model.fit(train_images, train_labels, epochs=3)
 
     # evaluate model w/ test sets
     print("evaluating model")

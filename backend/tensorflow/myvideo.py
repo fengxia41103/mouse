@@ -50,7 +50,10 @@ class VideoProcessor:
 
     def dump_video_to_frame(self):
         """Dump video frames to image."""
-        run(["ffmpeg", "-i", self.video, self.image_filename_convention])
+        run(
+            ["ffmpeg", "-i", self.video, self.image_filename_convention],
+            stdout=None,
+        )
 
         # get list of all images just extracted
         self.all_images = set(
@@ -196,5 +199,6 @@ class VideoProcessor:
 
         # convert to np array
         video = np.frombuffer(out, np.uint8).reshape(
-            [-1, self.height, self.width, 3])
+            [-1, self.height, self.width, 3]
+        )
         return video

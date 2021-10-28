@@ -10,7 +10,10 @@ from random import randint
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from video import VideoProcessor
+from mydata import DataLoader
+from mymodel import ModelCRNN
+from mymodel import ModelType1
+from myvideo import VideoProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -18,58 +21,6 @@ CLASS_NAMES = [
     "G",
     "NG",
 ]
-
-
-def load_data(path, subset, validation_split, batch_size, height, width):
-    return tf.keras.utils.image_dataset_from_directory(
-        path,
-        labels="inferred",
-        label_mode="int",
-        class_names=None,
-        color_mode="rgb",
-        batch_size=batch_size,
-        image_size=(height, width),
-        shuffle=True,
-        seed=123,
-        validation_split=validation_split,
-        subset=subset,
-        interpolation="bilinear",
-        follow_links=False,
-        crop_to_aspect_ratio=False,
-    )
-
-
-def define_model():
-    """Construct your AI layers.
-
-    Pick optimizer, loss function & accuracy metrics are arts. This is
-    the core decision of how your work might be different from others.
-
-    """
-    # from another tutorial
-    num_classes = 2
-
-    model = tf.keras.Sequential(
-        [
-            tf.keras.layers.Rescaling(1.0 / 255),
-            tf.keras.layers.Conv2D(32, 3, activation="relu"),
-            tf.keras.layers.MaxPooling2D(),
-            tf.keras.layers.Conv2D(32, 3, activation="relu"),
-            tf.keras.layers.MaxPooling2D(),
-            tf.keras.layers.Conv2D(32, 3, activation="relu"),
-            tf.keras.layers.MaxPooling2D(),
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(128, activation="relu"),
-            tf.keras.layers.Dense(num_classes),
-        ]
-    )
-
-    model.compile(
-        optimizer="adam",
-        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-        metrics=["accuracy"],
-    )
-    return model
 
 
 def plot_dataset(ds, class_names, count=9):
@@ -168,41 +119,6 @@ def plot_image_and_prediction(
     plt.show()
 
 
-def get_dataset(video_file, labels):
-
-    output_path = os.path.split(video_file)[0]
-
-    # video frame images
-    video_processor = VideoProcessor(video_file, labels, output_path)
-    video_processor.run()
-    1/0
-
-    # load images as dataset
-    train_ds = load_data(
-        output_path,
-        subset="training",
-        batch_size=32,
-        validation_split=0.2,
-        width=64,
-        height=64,
-    )
-    val_ds = load_data(
-        output_path,
-        subset="validation",
-        batch_size=32,
-        validation_split=0.2,
-        width=64,
-        height=64,
-    )
-    class_names = train_ds.class_names
-    print(class_names)
-
-    # view some data
-    # plot_dataset(train_ds, class_names, 9)
-
-    return (output_path, train_ds, val_ds)
-
-
 def plot_loss(history):
     fig = plt.figure(figsize=(15, 5))
 
@@ -230,7 +146,13 @@ def plot_loss(history):
 
 def main():
     # training iteration
-    EPOCHS = 10
+    EPOCHS = 1
+
+    # configs
+    BATCH_SIZE = 32
+    VALIDATION_SPLIT = 0.2
+    HEIGHT = 64
+    WIDTH = 64
 
     # training video & tag timestamps
     TRAIN_VIDEO = "../../data/train/train_video/A2#_10min_black.mp4"
@@ -247,48 +169,72 @@ def main():
         }
     ]
 
-    # load training data set
-    print("loading data")
-    output_path, train_ds, val_ds = get_dataset(TRAIN_VIDEO, TRAIN_LABELS)
-    print(train_ds.take(1))
+    logger.info("Load training video")
+    output_path = os.path.split(TRAIN_VIDEO)[0]
+    training_video = VideoProcessor(TRAIN_VIDEO, TRAIN_LABELS, output_path)
+    training_video.run()
 
-    # config dataset for performance
-    print("config dataset for performance")
-    AUTOTUNE = tf.data.AUTOTUNE
-    train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
-    val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
+    # step 2: load up train & val ds
+    training_data = DataLoader(
+        training_video.output_path,
+        batch_size=BATCH_SIZE,
+        validation_split=VALIDATION_SPLIT,
+        width=WIDTH,
+        height=HEIGHT,
+    )
+    training_data.run()
 
-    # define model
-    print("defining model")
-    the_model = define_model()
-
-    # train model
-    print("training model")
-    the_model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS)
-
-    # evaluate model w/ test sets
-    print("evaluating model")
-    test_loss, test_acc = the_model.evaluate(val_ds)
-    print("Test accuracy: {}, Test lost: {}".format(test_acc, test_loss))
-
-    # define prediction model
-    print("define prediction model")
-    probability_model = tf.keras.Sequential(
-        [the_model, tf.keras.layers.Softmax()]
+    logger.info("training model")
+    the_model = ModelType1(num_classes=len(TRAIN_LABELS) + 1)
+    # the_model = ModelCRNN(num_classes=len(
+    #    TRAIN_LABELS) + 1, shape=(32, 64, 64, 3))
+    the_model.run(training_data.train_ds, training_data.val_ds, EPOCHS)
+    logger.info(
+        "Test accuracy: {}, Test lost: {}".format(
+            the_model.evaluation_accuracy, the_model.evaluation_loss
+        )
     )
 
-    # load test images
-    output_path, test_ds, val_ds = get_dataset(TEST_VIDEO, TEST_LABELS)
+    # plot some image and its prediction for visual evaluation
+    # plot_loss(the_model.training_history)
+    # print(the_model.training_history)
+
+    # process videos & frames
+    logger.info("load testing data")
+    output_path = os.path.split(TEST_VIDEO)[0]
+    test_video = VideoProcessor(TEST_VIDEO, TEST_LABELS, output_path)
+    test_video.run()
+
+    test_data = DataLoader(
+        test_video.output_path,
+        batch_size=BATCH_SIZE,
+        validation_split=0.001,  # don't split test data
+        width=WIDTH,
+        height=HEIGHT,
+    )
+    test_data.run()
 
     # make a prediction
-    print("making prediction")
-    predictions = probability_model.predict(test_ds)
+    logger.info("making prediction")
+    the_model.predict(test_data.train_ds)
 
-    # plot some image and its prediction for visual evaluation
-    plot_loss()
-    test_images = np.concatenate([x for x, y in test_ds], axis=0)
-    test_labels = np.concatenate([y for x, y in test_ds], axis=0)
-    plot_image_and_prediction(5, 2, predictions, test_images, test_labels)
+    # confusion matrix
+    logger.info("build confusion matrix")
+    confusion_matrix = tf.math.confusion_matrix(
+        test_data.train_labels,
+        the_model.predictions_single,
+        num_classes=test_data.num_of_classes,
+        weights=None, dtype=tf.dtypes.int32,
+        name=None
+    )
+
+    # if = 1: [[  321 11359][  189  6113]]
+    # if = 3: [[  415 11265][  220  6082]]
+    print(confusion_matrix)
+
+    # show some visual
+    plot_image_and_prediction(
+        5, 2, the_model.predictions, test_data.train_images, test_data.train_labels)
 
 
 if __name__ == "__main__":

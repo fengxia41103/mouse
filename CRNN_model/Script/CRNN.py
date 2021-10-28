@@ -10,18 +10,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras.backend as K
-from tensorflow.keras.layers import (
-    GRU,
-    LSTM,
-    BatchNormalization,
-    Conv2D,
-    Dense,
-    Dropout,
-    GlobalMaxPool2D,
-    MaxPool2D,
-    TimeDistributed,
-)
-from tensorflow.keras.layers.experimental.preprocessing import Rescaling, Resizing
+from tensorflow.keras.layers import GRU
+from tensorflow.keras.layers import LSTM
+from tensorflow.keras.layers import BatchNormalization
+from tensorflow.keras.layers import Conv2D
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dropout
+from tensorflow.keras.layers import GlobalMaxPool2D
+from tensorflow.keras.layers import MaxPool2D
+from tensorflow.keras.layers import TimeDistributed
+from tensorflow.keras.layers.experimental.preprocessing import Rescaling
+from tensorflow.keras.layers.experimental.preprocessing import Resizing
 
 # In[ ]:
 
@@ -329,22 +328,25 @@ def oversampling(train_x, train_y):
     index_1 = np.where(np.array(train_y) == search_key[1])[0]
 
     # random sampling with replacement to balance data set
+    print("random sampling with replacement to balance data set")
     choices_0 = np.random.choice(index_0, counts_classes[1])
     choices_1 = np.random.choice(index_1, counts_classes[0])
-    # get labels and data from sampling index
+
+    print("get labels and data from sampling index")
     sampling_y_0 = np.array(train_y)[choices_0]
     sampling_y_1 = np.array(train_y)[choices_1]
 
     sampling_x_0 = train_x[choices_0]
     sampling_x_1 = train_x[choices_1]
 
-    # concate sampling set with original set
+    print("concate sampling set with original set")
     train_y = np.concatenate([sampling_y_0, np.array(train_y)])
     del sampling_y_0
     train_y = np.concatenate([sampling_y_1, np.array(train_y)])
     del sampling_y_1
     gc.collect()
 
+    print("get train_x")
     train_x = np.concatenate([sampling_x_0, train_x])
     del sampling_x_0
     train_x = np.concatenate([sampling_x_1, train_x])

@@ -6,7 +6,8 @@ import numpy as np
 import tensorflow as tf
 from Script.CRNN import *
 # from Script.Prepare_data import *
-from Script.Prepare_data import get_train_xy, prepare_video_data_31
+from Script.Prepare_data import get_train_xy
+from Script.Prepare_data import prepare_video_data_31
 
 # os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
@@ -26,10 +27,12 @@ test_loss = []
 test_acc = []
 
 # decided based on loss and acc
-EPOCHS = 100
+EPOCHS = 1
 
 # divided into 10 parts and 1 min each
 gap = 1
+
+model = None
 
 # train on the videos in train folder
 for i in range(len(os.listdir(data_folder))):
@@ -79,7 +82,7 @@ for i in range(len(os.listdir(data_folder))):
         )
 
         # oversampling on both grooming and non grooming data
-        train_x, train_y = oversampling(train_x, train_y)
+        #train_x, train_y = oversampling(train_x, train_y)
         print("Oversampling DONE!\n")
 
         # make train y fit in the model
@@ -89,8 +92,11 @@ for i in range(len(os.listdir(data_folder))):
         # only build model on first run
 
         if j != 0 and first_time == False:
-            model = tf.keras.models.load_model(save_name)
+            #print("load saved model for run {}".format(j))
+            #model = tf.keras.models.load_model(save_name)
+            pass
         else:
+            print("initialize model for 1st run")
             model = initial_model(train_x)
             first_time = False
 
@@ -105,7 +111,6 @@ for i in range(len(os.listdir(data_folder))):
         test_acc += history.history["val_acc"]
 
         del history
-        del model
         gc.collect()
 
     print(mouse, " TRAINED!\n")
