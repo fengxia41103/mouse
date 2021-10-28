@@ -4,8 +4,7 @@ import os
 import os.path
 import re
 import shutil
-from math import ceil
-from math import floor
+from math import ceil, floor
 from random import randint
 from subprocess import run
 

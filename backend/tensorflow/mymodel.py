@@ -1,17 +1,18 @@
-from abc import ABCMeta
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import GRU
-from tensorflow.keras.layers import LSTM
-from tensorflow.keras.layers import BatchNormalization
-from tensorflow.keras.layers import Conv2D
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import Dropout
-from tensorflow.keras.layers import GlobalMaxPool2D
-from tensorflow.keras.layers import MaxPool2D
-from tensorflow.keras.layers import TimeDistributed
+from tensorflow.keras.layers import (
+    GRU,
+    LSTM,
+    BatchNormalization,
+    Conv2D,
+    Dense,
+    Dropout,
+    GlobalMaxPool2D,
+    MaxPool2D,
+    TimeDistributed,
+)
 
 
 class MyModel(metaclass=ABCMeta):
@@ -59,8 +60,7 @@ class MyModel(metaclass=ABCMeta):
         self.training_history = history.history
 
     def evaluate(self, ds):
-        self.evaluation_loss, self.evaluation_accuracy = self.model.evaluate(
-            ds)
+        self.evaluation_loss, self.evaluation_accuracy = self.model.evaluate(ds)
 
     def predict(self, ds):
         self.predictions = self.predictor.predict(ds)

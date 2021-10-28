@@ -6,8 +6,7 @@ import numpy as np
 import tensorflow as tf
 from Script.CRNN import *
 # from Script.Prepare_data import *
-from Script.Prepare_data import get_train_xy
-from Script.Prepare_data import prepare_video_data_31
+from Script.Prepare_data import get_train_xy, prepare_video_data_31
 
 # os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
@@ -82,7 +81,7 @@ for i in range(len(os.listdir(data_folder))):
         )
 
         # oversampling on both grooming and non grooming data
-        #train_x, train_y = oversampling(train_x, train_y)
+        # train_x, train_y = oversampling(train_x, train_y)
         print("Oversampling DONE!\n")
 
         # make train y fit in the model
@@ -92,8 +91,8 @@ for i in range(len(os.listdir(data_folder))):
         # only build model on first run
 
         if j != 0 and first_time == False:
-            #print("load saved model for run {}".format(j))
-            #model = tf.keras.models.load_model(save_name)
+            # print("load saved model for run {}".format(j))
+            # model = tf.keras.models.load_model(save_name)
             pass
         else:
             print("initialize model for 1st run")

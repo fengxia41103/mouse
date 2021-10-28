@@ -3,16 +3,14 @@ import csv
 import logging
 import os
 import os.path
-from math import ceil
-from math import floor
+from math import ceil, floor
 from random import randint
 
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from mydata import DataLoader
-from mymodel import ModelCRNN
-from mymodel import ModelType1
+from mymodel import ModelCRNN, ModelType1
 from myvideo import VideoProcessor
 
 logger = logging.getLogger(__name__)
@@ -224,8 +222,9 @@ def main():
         test_data.train_labels,
         the_model.predictions_single,
         num_classes=test_data.num_of_classes,
-        weights=None, dtype=tf.dtypes.int32,
-        name=None
+        weights=None,
+        dtype=tf.dtypes.int32,
+        name=None,
     )
 
     # if = 1: [[  321 11359][  189  6113]]
@@ -234,7 +233,12 @@ def main():
 
     # show some visual
     plot_image_and_prediction(
-        5, 2, the_model.predictions, test_data.train_images, test_data.train_labels)
+        5,
+        2,
+        the_model.predictions,
+        test_data.train_images,
+        test_data.train_labels,
+    )
 
 
 if __name__ == "__main__":

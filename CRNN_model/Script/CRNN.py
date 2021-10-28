@@ -10,17 +10,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras.backend as K
-from tensorflow.keras.layers import GRU
-from tensorflow.keras.layers import LSTM
-from tensorflow.keras.layers import BatchNormalization
-from tensorflow.keras.layers import Conv2D
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import Dropout
-from tensorflow.keras.layers import GlobalMaxPool2D
-from tensorflow.keras.layers import MaxPool2D
-from tensorflow.keras.layers import TimeDistributed
-from tensorflow.keras.layers.experimental.preprocessing import Rescaling
-from tensorflow.keras.layers.experimental.preprocessing import Resizing
+from tensorflow.keras.layers import (
+    GRU,
+    LSTM,
+    BatchNormalization,
+    Conv2D,
+    Dense,
+    Dropout,
+    GlobalMaxPool2D,
+    MaxPool2D,
+    TimeDistributed,
+)
+from tensorflow.keras.layers.experimental.preprocessing import Rescaling, Resizing
 
 # In[ ]:
 
