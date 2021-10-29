@@ -1,18 +1,17 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
+from abc import abstractmethod
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import (
-    GRU,
-    LSTM,
-    BatchNormalization,
-    Conv2D,
-    Dense,
-    Dropout,
-    GlobalMaxPool2D,
-    MaxPool2D,
-    TimeDistributed,
-)
+from tensorflow.keras.layers import GRU
+from tensorflow.keras.layers import LSTM
+from tensorflow.keras.layers import BatchNormalization
+from tensorflow.keras.layers import Conv2D
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dropout
+from tensorflow.keras.layers import GlobalMaxPool2D
+from tensorflow.keras.layers import MaxPool2D
+from tensorflow.keras.layers import TimeDistributed
 
 
 class MyModel(metaclass=ABCMeta):
@@ -34,6 +33,14 @@ class MyModel(metaclass=ABCMeta):
     @abstractmethod
     def define_model(self):
         pass
+
+    @abstractmethod
+    def validate_dataset(self):
+        # compare my expected shape vs. dataset
+        # True: will work
+        # False: recommendation?
+        pass
+
 
     def define_predictor(self):
         # probability predictor
@@ -98,9 +105,10 @@ class ModelType1(MyModel):
 
 class ModelCRNN(MyModel):
     def __init__(
-        self, num_classes, shape=(20, 112, 112, 3), nbout=2, momentum=0.9
+        self, num_classes, shape=(20, 112, 112, 3), nbout=2, momentum=0.9, dataset=None
     ):
         super().__init__(num_classes, shape, nbout, momentum)
+
 
     def define_model(self):
         # CNN part
@@ -159,6 +167,84 @@ class ModelCRNN(MyModel):
         model.add(TimeDistributed(MaxPool2D(strides=(2, 2))))
 
         model.add(TimeDistributed(GlobalMaxPool2D()))
+
+        # here, you can also use GRU or LSTM, RNN
+        model.add(GRU(256, activation="relu", return_sequences=True))
+        model.add(GRU(256, activation="relu"))
+
+        # and finally, we make a decision network, Dense layer
+        model.add(Dense(1024, activation="relu"))
+
+        model.add(Dropout(0.5))
+
+        model.add(Dense(512, activation="relu"))
+        model.add(Dropout(0.3))
+
+        model.add(Dense(128, activation="relu"))
+        model.add(Dropout(0.2))
+
+        model.add(Dense(64, activation="relu"))
+
+        # output layers
+        model.add(Dense(self.nbout, activation="softmax"))
+
+        return model
+
+
+class ModelCRNN2(MyModel):
+    def __init__(
+        self, num_classes, shape=(20, 112, 112, 3), nbout=2, momentum=0.9
+    ):
+        super().__init__(num_classes, shape, nbout, momentum)
+
+    def define_model(self):
+        # CNN part
+
+        model = tf.keras.Sequential()
+
+        # CNN part here
+        model.add(
+            tf.keras.layers.experimental.preprocessing.RandomRotation(
+                (-0.3, 0.3)
+            )
+        )
+
+        model.add(
+            Conv2D(
+                32,
+                (3, 3),
+                input_shape=self.shape,
+                padding="same",
+                activation="relu",
+            ),
+        )
+        model.add(MaxPool2D(strides=(2, 2)))
+
+        model.add(
+            Conv2D(
+                32,
+                (3, 3),
+                input_shape=self.shape,
+                padding="same",
+                activation="relu",
+            )
+        )
+        model.add(BatchNormalization(momentum=self.momentum))
+        model.add(MaxPool2D(strides=(2, 2)))
+
+        model.add(
+            Conv2D(
+                32,
+                (3, 3),
+                input_shape=self.shape,
+                padding="same",
+                activation="relu",
+            )
+        )
+        model.add(BatchNormalization(momentum=self.momentum))
+        model.add(MaxPool2D(strides=(2, 2)))
+
+        # model.add(GlobalMaxPool2D())
 
         # here, you can also use GRU or LSTM, RNN
         model.add(GRU(256, activation="relu", return_sequences=True))

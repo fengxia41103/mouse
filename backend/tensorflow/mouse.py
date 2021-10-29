@@ -3,14 +3,17 @@ import csv
 import logging
 import os
 import os.path
-from math import ceil, floor
+from math import ceil
+from math import floor
 from random import randint
 
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from mydata import DataLoader
-from mymodel import ModelCRNN, ModelType1
+from mymodel import ModelCRNN
+from mymodel import ModelCRNN2
+from mymodel import ModelType1
 from myvideo import VideoProcessor
 
 logger = logging.getLogger(__name__)
@@ -182,10 +185,15 @@ def main():
     )
     training_data.run()
 
+    # convert data array to fit model input shape
+    # TBD
+
+
     logger.info("training model")
-    the_model = ModelType1(num_classes=len(TRAIN_LABELS) + 1)
-    # the_model = ModelCRNN(num_classes=len(
-    #    TRAIN_LABELS) + 1, shape=(32, 64, 64, 3))
+    # the_model = ModelType1(num_classes=len(TRAIN_LABELS) + 1)
+    the_model = ModelCRNN2(
+        num_classes=len(TRAIN_LABELS) + 1, shape=(1, WIDTH, HEIGHT, 3)
+    )
     the_model.run(training_data.train_ds, training_data.val_ds, EPOCHS)
     logger.info(
         "Test accuracy: {}, Test lost: {}".format(
